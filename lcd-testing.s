@@ -8,7 +8,9 @@ E =  %10000000
 RW = %01000000
 RS = %00100000
 
-loop_count = $0200 ; 1byte
+tmp     = $0200 ; 1 byte 
+counter = $0201 ; 2 bytes
+
 
 
   ; our ROM address space begins at $8000
@@ -28,52 +30,25 @@ reset:
 
   jsr initialize_display
 
-;  lda #"A"
-;  jsr print_character
-;  lda #"B"
-;  jsr print_character
-;  lda #"C"
-;  jsr print_character
-;  lda #"D"
-;  jsr print_character
-;  lda #"E"
-;  jsr print_character
-
-  lda #%11111010
-  ldx #7
-  jsr print_binary_at_index
-
-  lda #%11111010
-  ldx #6
-  jsr print_binary_at_index
-
-  lda #%11111010
-  ldx #5
-  jsr print_binary_at_index
-
-  lda #%11111010
-  ldx #4
-  jsr print_binary_at_index
-
-  lda #%11111010
-  ldx #3
-  jsr print_binary_at_index
-
-  lda #%11111010
-  ldx #2
-  jsr print_binary_at_index
-
-  lda #%11111010
-  ldx #1
-  jsr print_binary_at_index
-
-  lda #%11111010
-  ldx #0
-  jsr print_binary_at_index
-
+  lda #%11100011
+  jsr print_8_bits
 
 loop:
   jmp loop  
+
+
+print_8_bits:
+  ldy #7
+print_8_bits_loop_start:
+  sty tmp
+  ldx tmp
+  jsr print_binary_at_index
+  dey
+  bmi exit_print_8_bits
+  jmp print_8_bits_loop_start
+exit_print_8_bits:
+  rts
+
 
 ; prints the xth binary value [0..7]
 ; in the a register, resotres a for caller
@@ -224,7 +199,17 @@ print_character:
   sta PORTA
   rts
 
+nmi:
+  rti
 
-  .org $fffc
+irq:
+  inc counter
+  bne exit_irq
+  inc counter + 1
+exit_irq:
+  rti
+
+  .org $fffa
+  .word nmi
   .word reset
-  .word $0000
+  .word irq
