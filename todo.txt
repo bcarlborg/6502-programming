@@ -1,0 +1,12 @@
+TODOS
+- Provide rough outline of ben eaters 6502 computer system in readme along with photo
+  - outline memory map
+  - link to external device spec sheets
+  - link to mini pro along with vasm
+- create a makefile for compiling and uploading code
+
+
+
+
+COMPLETE
+- move in progress files to git repository
