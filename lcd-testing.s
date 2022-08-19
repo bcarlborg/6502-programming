@@ -30,12 +30,18 @@ reset:
 
   jsr initialize_display
 
-  lda #%11100011
-  jsr print_8_bits
+  lda #%11000011
+  sta counter
+  lda #%00111100
+  sta counter + 1
 
 loop:
+  jsr set_lcd_cursor_home
+  lda counter
+  jsr print_8_bits
+  lda counter + 1
+  jsr print_8_bits
   jmp loop  
-
 
 print_8_bits:
   ldy #7
@@ -82,15 +88,31 @@ print_binary_at_index_rotate_index_to_start_loop_over:
   pla
   rts
 
-initialize_display:
-  ; ---------------------------------
-  ; Clear Display
-  ; ---------------------------------
-  ;
-  ; 00000001
- 
+; ---------------------------------
+; Clear Display
+; ---------------------------------
+;
+; 00000001
+clear_lcd_display:
   lda #%00000001
   jsr lcd_instruction
+  rts
+
+
+; ---------------------------------
+; Set lcd cursor to home
+; ---------------------------------
+;
+; 00000010
+set_lcd_cursor_home:
+  lda #%00000010
+  jsr lcd_instruction
+  rts
+
+
+
+initialize_display:
+  jsr clear_lcd_display 
 
   ; ---------------------------------
   ; LCD Function set instruction
@@ -109,12 +131,12 @@ initialize_display:
   ; ---------------------------------
   ;
   ; 00001 D C B
-  ; 00001   : display on off instruction code
-  ; D = 1   ; display on
-  ; C = 1   ; cursor on
-  ; B = 1   ; blinking cursor on
+  ; 00001     ; display on off instruction code
+  ; D = 1     ; display on
+  ; C = 0/1   ; cursor off/on
+  ; B = 0/1   ; blinking cursor off/on
  
-  lda #%00001111
+  lda #%00001100
   jsr lcd_instruction
 
   ; ---------------------------------
