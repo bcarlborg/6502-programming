@@ -1,0 +1,6 @@
+
+# assemble 
+vasm6502_oldstyle -Fbin -dotdir lcd-testing.s
+
+# load the eeprom
+minipro -p AT28C256 -w a.out
