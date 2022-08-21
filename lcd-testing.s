@@ -19,6 +19,9 @@ counter = $0201 ; 2 bytes
 reset:
   ldx #$ff
   txs
+  
+  ; clear the interrupt disable bit
+  cli
 
   ; set all pins on port b to output
   lda #%11111111
@@ -30,16 +33,16 @@ reset:
 
   jsr initialize_display
 
-  lda #%11000011
-  sta counter
-  lda #%00111100
+  lda #0
   sta counter + 1
+  lda #0
+  sta counter
 
 loop:
   jsr set_lcd_cursor_home
-  lda counter
-  jsr print_8_bits
   lda counter + 1
+  jsr print_8_bits
+  lda counter
   jsr print_8_bits
   jmp loop  
 
@@ -222,6 +225,10 @@ print_character:
   rts
 
 nmi:
+  inc counter
+  bne exit_irq
+  inc counter + 1
+exit_nmi:
   rti
 
 irq:
