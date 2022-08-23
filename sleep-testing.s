@@ -4,6 +4,12 @@ PORTB = $6000
 DDRA = $6003
 DDRB = $6002
 
+T1CL = $6004
+T1CH = $6005
+
+ACR = $600b
+IFR = $600d
+
 E =  %10000000
 RW = %01000000
 RS = %00100000
@@ -17,46 +23,42 @@ counter = $0201 ; 2 bytes
   .org $8000
 
 reset:
-  ldx #$ff
-  txs
-  
-  ; clear the interrupt disable bit
-  cli
-
-  ; set all pins on port b to output
-  lda #%11111111
-  sta DDRB
-
   ; set last pin on port a to output to drive LED
   lda #%11111111
   sta DDRA
+
+  ; use the auxiliary control register to set timer 1 to 00
+  lda #0
+  sta ACR
 
   ; disable our LED before looping
   lda #0
   sta PORTA
 
 loop:
-  inc PORTA ; turn led on
+  lda #1
+  sta PORTA
   jsr delay
 
-  dec PORTA ; turn led off
+  lda #0
+  sta PORTA
   jsr delay
 
   jmp loop
 
 delay:
-  ldy #$FF
-delay_outer:
+  lda #$50
+  sta T1CL
+  lda #$C3
+  sta T1CH
 
-  ldx #$FF
-delay_inner:
-  nop
-  dex
-  bne delay_inner 
+; loop until IFR is set
+delay1:
+  bit IFR
+  bvc delay1
 
-  dey
-  bne delay_outer 
-
+  ; read from T1CL to clear the interrupt
+  lda T1CL
   rts
 
 nmi:
