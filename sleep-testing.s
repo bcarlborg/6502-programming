@@ -9,14 +9,14 @@ T1CH = $6005
 
 ACR = $600b
 IFR = $600d
+IER = $600e
 
 E =  %10000000
 RW = %01000000
 RS = %00100000
 
-tmp     = $0200 ; 1 byte 
-counter = $0201 ; 2 bytes
-
+ticks = $00 ; 4 bytes
+toggle_time = $04
 
 
   ; our ROM address space begins at $8000
@@ -27,42 +27,73 @@ reset:
   lda #%11111111
   sta DDRA
 
-  ; use the auxiliary control register to set timer 1 to 00
-  lda #0
-  sta ACR
 
-  ; disable our LED before looping
+  ; zero out some variables
   lda #0
-  sta PORTA
+  sta PORTA ; disable our LED before looping
+  sta toggle_time
+
+  jsr init_timer
 
 loop:
-  lda #1
-  sta PORTA
-  jsr delay
-
-  lda #0
-  sta PORTA
-  jsr delay
-
+  jsr update_led
   jmp loop
 
-delay:
-  lda #$50
+update_led:
+  sec
+  lda ticks
+  sbc toggle_time
+  cmp #250 ; have 2500 miliseconds passed
+  bcc loop
+
+  ; xor port A with 1 to invert it
+  lda #$01
+  eor PORTA
+  sta PORTA
+
+  lda ticks
+  sta toggle_time
+
+  jmp update_led
+
+init_timer:
+  lda #0
+  sta ticks
+  sta ticks + 1
+  sta ticks + 2
+  sta ticks + 3
+
+  lda #%01000000
+  sta ACR
+
+  lda #$0E
   sta T1CL
-  lda #$C3
+  lda #$27
   sta T1CH
 
-; loop until IFR is set
-delay1:
-  bit IFR
-  bvc delay1
+  lda #%11000000
+  sta IER
 
-  ; read from T1CL to clear the interrupt
-  lda T1CL
+  cli
+
   rts
 
 nmi:
+  rti
+
 irq:
+  ; use bit op to read from T1CL
+  bit T1CL
+
+  inc ticks
+  bne irq_end
+  inc ticks + 1
+  bne irq_end
+  inc ticks + 2
+  bne irq_end
+  inc ticks + 3
+
+irq_end:
   rti
 
   .org $fffa
