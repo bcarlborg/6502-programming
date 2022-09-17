@@ -88,14 +88,14 @@ lcd_display_initialize:
   ; tell the display number of lines etc
   jsr lcd_display_function_set
 
-  ; turn the display on 
-  jsr lcd_display_display_on
-
   ; clear the display
   jsr lcd_display_clear_display
 
   ; set the entry mode on the display
   jsr lcd_display_entry_mode_set
+
+  ; turn the display on 
+  jsr lcd_display_display_on
 
   rts
 
@@ -142,6 +142,8 @@ lcd_display_display_return_home:
 
 ; pass instruction for data lines in regiester A
 lcd_display_send_instruction:
+  jsr lcd_spin_while_busy
+
   ; send the instruction to the display instr register
   sta VIA_PORT_B
 
@@ -161,6 +163,8 @@ lcd_display_send_instruction:
 
 ; pass character data to write in register a
 lcd_display_write_character:
+  jsr lcd_spin_while_busy
+
   sta VIA_PORT_B
   lda #VIA_PORT_A_LCD_RS_BIT ; Set RS; Clear RW/E bits
 
@@ -173,7 +177,47 @@ lcd_display_write_character:
   sta VIA_PORT_A
   rts
 
-lcd_display_spin_until_not_busy:
+lcd_spin_while_busy:
+  pha
+lcd_spin_while_busy_inner:
+  ; get the busy flag and address in A
+  jsr lcd_read_busy_flag_and_address
+ 
+  ; get just the busy flag
+  and #%10000000
+
+  ; the busy flag is set, read the busy flag again
+  bne lcd_spin_while_busy_inner
+
+  pla
+  rts
+
+lcd_read_busy_flag_and_address:
+  ; set DDRB as input
+  lda #%00000000
+  sta VIA_DDR_B
+
+  ; set Enable, Register select to 0, Read write to 1
+  lda VIA_PORT_A_LCD_RW_BIT
+  sta VIA_PORT_A
+
+  ; briefly set the enable instruction to kick off
+  ; display processing of instruction
+  lda #(VIA_PORT_A_LCD_E_BIT | VIA_PORT_A_LCD_RW_BIT)
+  sta VIA_PORT_A
+
+  ; read the busy flag data
+  ldx VIA_PORT_B
+
+  lda VIA_PORT_A_LCD_RW_BIT
+  sta VIA_PORT_A
+
+  ; restore DDRB as output
+  lda #$FF
+  sta VIA_DDR_B
+
+  ; put the read value back in A
+  txa
   rts
 
   .org $fffc
