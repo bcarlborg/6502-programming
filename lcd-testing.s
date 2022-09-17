@@ -14,7 +14,7 @@ counter = $0201 ; 2 bytes
 
 
   ; our ROM address space begins at $8000
-  .org $8000
+  .org $E000
 
 reset:
   ldx #$ff
