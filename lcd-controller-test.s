@@ -24,15 +24,10 @@
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 ; ------------------------------
 ; constants
 ; ------------------------------
-
-; 65C22 VIA CONSTANTS
-VIA_PORT_B = $6000
-VIA_PORT_A = $6001
-VIA_DDR_B = $6002   
-VIA_DDR_A = $6003
 
 ; 65C22 to HD44780U
 ; lcd enable bit
@@ -42,35 +37,44 @@ VIA_PORT_A_LCD_RW_BIT = %01000000
 ; lcd register select bit
 VIA_PORT_A_LCD_RS_BIT = %00100000
 
+; 65C22 VIA CONSTANTS
+VIA_PORT_B = $6000
+VIA_PORT_A = $6001
+VIA_DDR_B = $6002   
+VIA_DDR_A = $6003
+
+lcd_display_write_zero_terminated_string__input_low = $6004
+lcd_display_write_zero_terminated_string__input_high = $6005
+
+; ------------------------------
+; variables
+; ------------------------------
+
+; helper variables
+ADDR_ARG_1_LOW = $0000
+ADDR_ARG_1_HIGH = $0001
 
 
   ; program instructions begin at 8000
   .org $E000
 
+message: .asciiz "Hello world!"
+
 reset:
   jsr via_initialize_ports_for_display
   jsr lcd_display_initialize
-
-  lda #"H"
-  jsr lcd_display_write_character
-
-  lda #"E"
-  jsr lcd_display_write_character
-
-  lda #"L"
-  jsr lcd_display_write_character
-
-  lda #"L"
-  jsr lcd_display_write_character
-
-  lda #"O"
-  jsr lcd_display_write_character
-
-  lda #"!"
-  jsr lcd_display_write_character
+  
+  lda #(message & $FF)
+  sta ADDR_ARG_1_LOW
+  
+  lda #(message >> 8)
+  sta ADDR_ARG_1_HIGH
+  
+  jsr lcd_display_write_zero_terminated_string
 
 loop:
   jmp loop
+
 
 ; ------------------------------
 ; initialization sub routines
@@ -161,8 +165,26 @@ lcd_display_send_instruction:
 
   rts
 
+; pass address of string in A
+lcd_display_write_zero_terminated_string:
+  ldy #0
+
+lcd_display_write_zero_terminated_string__inner:
+  lda (ADDR_ARG_1_LOW),Y
+  cmp #0
+  beq lcd_display_write_zero_terminated_string__exit
+  jsr lcd_display_write_character
+  iny
+  jmp lcd_display_write_zero_terminated_string__inner
+
+lcd_display_write_zero_terminated_string__exit:
+  rts
+  
+
 ; pass character data to write in register a
 lcd_display_write_character:
+  pha
+
   jsr lcd_spin_while_busy
 
   sta VIA_PORT_B
@@ -175,6 +197,8 @@ lcd_display_write_character:
   lda #VIA_PORT_A_LCD_RS_BIT ; Set RS; Clear RW/E bits
 
   sta VIA_PORT_A
+
+  pla
   rts
 
 lcd_spin_while_busy:
