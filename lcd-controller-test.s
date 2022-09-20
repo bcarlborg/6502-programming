@@ -171,7 +171,6 @@ lcd_display_write_zero_terminated_string:
 
 lcd_display_write_zero_terminated_string__inner:
   lda (ADDR_ARG_1_LOW),Y
-  cmp #0
   beq lcd_display_write_zero_terminated_string__exit
   jsr lcd_display_write_character
   iny
