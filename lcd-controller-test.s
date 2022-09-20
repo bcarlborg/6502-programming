@@ -64,7 +64,6 @@ lcd_display_write_zero_terminated_string__input_high = $6005
 ; ------------------------------
 
 ; helper variables
-; todo: high and low are not both necessary
 ADDR_ARG_1 = $0000 ; 2 bytes
 
 PRINT_BASE_10_VALUE = $0200 ; 2 bytes
@@ -76,28 +75,39 @@ PRINT_NUMBER_OUT = $0204 ; 6 bytes
   ; program instructions begin at 8000
   .org $E000
 
-message: .asciiz "Hello world!"
-number: .word 1729
+message: .asciiz "Hi!"
+number: .word 42
 
 reset:
+  ; print a string to the screen
   jsr via_initialize_ports_for_display
   jsr lcd_display_initialize
   
-  ; lda #(message & $FF)
-  ; sta ADDR_ARG_1
-  ; 
-  ; lda #(message >> 8)
-  ; sta ADDR_ARG_1 + 1
-  ; 
-  ; jsr lcd_display_write_zero_terminated_string
+  lda #(message & $FF)
+  sta ADDR_ARG_1
+  
+  lda #(message >> 8)
+  sta ADDR_ARG_1 + 1
+  
+  jsr lcd_display_write_zero_terminated_string
 
-  lda #0
-  sta PRINT_NUMBER_OUT
+  lda #" "
+  jsr lcd_display_write_character
 
-  ; initialize value to be the number to convert
+  ; print a number from rom to the screen
   lda number
   sta PRINT_BASE_10_VALUE
   lda number + 1
+  sta PRINT_BASE_10_VALUE + 1
+  jsr lcd_display_write_base_10_number
+
+  lda #" "
+  jsr lcd_display_write_character
+
+  ; dynamically print a number from rom to the screen
+  lda #$FF
+  sta PRINT_BASE_10_VALUE
+  lda #0
   sta PRINT_BASE_10_VALUE + 1
   jsr lcd_display_write_base_10_number
 
@@ -277,6 +287,9 @@ lcd_display_write_character:
 
 ; writes a 16 bit number passed in PRINT_BASE_10_VALUE, PRINT_BASE_10_VALUE + 1
 lcd_display_write_base_10_number:
+  lda #0
+  sta PRINT_NUMBER_OUT
+
 lcd_display_write_base_10_number__divide:
   ; initialize remainder to 0
   lda #0
