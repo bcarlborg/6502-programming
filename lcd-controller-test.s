@@ -95,13 +95,12 @@ BLINK_LED_BLINK_TIME = $0210 ; 1 byte
 
 TMP = $0211 ; 2 bytes
 
+FRAME_TIME = $0213 ; 1 byte
+
 
 
   ; program instructions begin at 8000
   .org $E000
-
-; TODO: make each thing we can do with this program a sub routine with its own
-; loop function so that we can easily switch between them and see what the options are
 
 reset:
   ; set intterrupts as allowed on 6502
@@ -116,13 +115,8 @@ reset:
   ; initialize timers for blinking LED
   jsr via_initialize_timer1_tick_timer
 
-  lda #0
-  sta BLINK_LED_BLINK_TIME
-
-  ; initialize our irq counter
-  lda #0
-  sta IRQ_COUNTER
-  sta IRQ_COUNTER + 1
+  ; initialize variables
+  jsr initialize_variables
 
   ; print a string to the screen
   jsr via_initialize_ports_for_display
@@ -133,35 +127,52 @@ reset:
 
 loop:
   jsr clear_screen_and_print_irq_counter
-  jsr blink_led_on_delay
+  jsr blink_led
   jmp loop
 
 ; ------------------------------
 ; functional sub routines
 ; ------------------------------
 
-blink_led_on_delay:
+blink_led:
   sec
   lda TICKS
   sbc BLINK_LED_BLINK_TIME
 
   ; check if 250 ms have passed
   cmp #25
+
+  ; if not, exit
   bcc blink_led__no_blink
+
+  ; if so store lowest byte of ticks as new toggle time
+  lda TICKS
+  sta BLINK_LED_BLINK_TIME
 
   ; toggle the lowest bit on port a
   lda VIA_PORT_A
   eor #%00000001
   sta VIA_PORT_A
 
-  ; store lowest byte of ticks as new toggle time
-  lda TICKS
-  sta BLINK_LED_BLINK_TIME
 
 blink_led__no_blink:
   rts
 
 clear_screen_and_print_irq_counter:
+  sec
+  lda TICKS
+  sbc FRAME_TIME
+
+  ; check if 50 ms have passed
+  cmp #5
+
+  ; if not exit
+  bcc clear_screen_and_print_irq_counter
+
+  ; if so, then update frame time and continue
+  lda TICKS
+  sta FRAME_TIME
+
   jsr lcd_display_return_home
 
   ; print a number from rom to the screen
@@ -174,6 +185,9 @@ clear_screen_and_print_irq_counter:
   sta PRINT_BASE_10_VALUE + 1
   cli
   jsr lcd_display_write_base_10_number
+
+
+clear_screen_and_print_irq_counter__exit:
   rts
 
 basic_print_test__message: .asciiz "Hi!"
@@ -212,6 +226,20 @@ basic_print_test:
 ; ------------------------------
 ; initialization sub routines
 ; ------------------------------
+
+initialize_variables:
+  lda #0
+  sta FRAME_TIME
+
+  lda #0
+  sta BLINK_LED_BLINK_TIME
+
+  ; initialize our irq counter
+  lda #0
+  sta IRQ_COUNTER
+  sta IRQ_COUNTER + 1
+
+  rts
 
 via_initialize_ports_for_display:
   ; set data direction of ports A and B
