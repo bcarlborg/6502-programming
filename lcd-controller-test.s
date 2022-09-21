@@ -71,6 +71,8 @@ PRINT_BASE_10_MOD_10 = $0202 ; 2 bytes
 
 PRINT_NUMBER_OUT = $0204 ; 6 bytes
 
+IRQ_COUNTER = $020A
+
 
   ; program instructions begin at 8000
   .org $E000
@@ -79,10 +81,41 @@ message: .asciiz "Hi!"
 number: .word 42
 
 reset:
+  ; set intterrupts on
+  cli
+
+  ; initialize our irq counter
+  lda #0
+  sta IRQ_COUNTER
+  sta IRQ_COUNTER + 1
+
   ; print a string to the screen
   jsr via_initialize_ports_for_display
   jsr lcd_display_initialize
-  
+
+  ; jsr basic_print_test
+
+
+loop:
+  jsr clear_screen_and_print_irq_counter
+  jmp loop
+
+; ------------------------------
+; functional sub routines
+; ------------------------------
+
+clear_screen_and_print_irq_counter:
+  jsr lcd_display_return_home
+
+  ; print a number from rom to the screen
+  lda IRQ_COUNTER
+  sta PRINT_BASE_10_VALUE
+  lda IRQ_COUNTER + 1
+  sta PRINT_BASE_10_VALUE + 1
+  jsr lcd_display_write_base_10_number
+  rts
+
+basic_print_test:
   lda #(message & $FF)
   sta ADDR_ARG_1
   
@@ -110,9 +143,7 @@ reset:
   lda #0
   sta PRINT_BASE_10_VALUE + 1
   jsr lcd_display_write_base_10_number
-
-loop:
-  jmp loop
+  rts
 
 
 ; ------------------------------
@@ -177,7 +208,7 @@ lcd_display_display_on:
   rts
 
 
-lcd_display_display_return_home:
+lcd_display_return_home:
   lda #%00000001
   jsr lcd_display_send_instruction
   rts
@@ -362,6 +393,18 @@ print_base_10_push_char__loop:
   sta PRINT_NUMBER_OUT,y ; pull null off the stack and add that to the string
   rts
 
-  .org $fffc
+nmi:
+  rti
+
+
+irq:
+  inc IRQ_COUNTER
+  bne irq__exit
+  inc IRQ_COUNTER + 1
+irq__exit
+  rti
+
+  .org $fffa
+  .word nmi
   .word reset  ; our program
-  .word $0000  ; unused interrupt vector
+  .word irq    ; unused interrupt vector
