@@ -122,8 +122,8 @@ clear_screen_and_print_irq_counter:
   sta PRINT_BASE_10_VALUE
   lda IRQ_COUNTER + 1
   sta PRINT_BASE_10_VALUE + 1
-  cli
   jsr lcd_display_write_base_10_number
+  cli
   rts
 
 basic_print_test__message: .asciiz "Hi!"
@@ -421,22 +421,21 @@ print_base_10_push_char__loop:
 nmi:
   rti
 
+
 irq:
   pha
-  txa
+  tax
   pha
-  tya
+  tay
   pha
-  
-  sei
+
   inc IRQ_COUNTER
   bne irq__exit
   inc IRQ_COUNTER + 1
-  cli
 irq__exit:
 
   ; delay to debounce
-  ldy #$9F
+  ldy #$03
   ldx #$FF
 irq__delay:
   dex
