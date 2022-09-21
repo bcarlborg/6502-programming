@@ -77,8 +77,6 @@ IRQ_COUNTER = $020A
   ; program instructions begin at 8000
   .org $E000
 
-message: .asciiz "Hi!"
-number: .word 42
 
 reset:
   ; set intterrupts on
@@ -117,11 +115,13 @@ clear_screen_and_print_irq_counter:
   jsr lcd_display_write_base_10_number
   rts
 
+basic_print_test__message: .asciiz "Hi!"
+basic_print_test__number: .word 42
 basic_print_test:
-  lda #(message & $FF)
+  lda #(basic_print_test__message & $FF)
   sta ADDR_ARG_1
   
-  lda #(message >> 8)
+  lda #(basic_print_test__message >> 8)
   sta ADDR_ARG_1 + 1
   
   jsr lcd_display_write_zero_terminated_string
@@ -130,9 +130,9 @@ basic_print_test:
   jsr lcd_display_write_character
 
   ; print a number from rom to the screen
-  lda number
+  lda basic_print_test__number
   sta PRINT_BASE_10_VALUE
-  lda number + 1
+  lda basic_print_test__number + 1
   sta PRINT_BASE_10_VALUE + 1
   jsr lcd_display_write_base_10_number
 
