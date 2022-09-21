@@ -89,7 +89,11 @@ PRINT_NUMBER_OUT = $0204 ; 6 bytes
 
 IRQ_COUNTER = $020A ; two bytes
 
-TMP = $020C ; 2 bytes
+TICKS = $020C ; 4 bytes
+
+BLINK_LED_BLINK_TIME = $0210 ; 1 byte
+
+TMP = $0211 ; 2 bytes
 
 
 
@@ -100,14 +104,20 @@ TMP = $020C ; 2 bytes
 ; loop function so that we can easily switch between them and see what the options are
 
 reset:
-  ; set intterrupts on
+  ; set intterrupts as allowed on 6502
   cli
+
+  ; diable all via interrupts, enable then as needed after
+  jsr via_set_all_interrupts_off
 
   ; enable interrupts on the ca1 line of the VIA
   jsr via_initialize_ca1_interrupts
 
   ; initialize timers for blinking LED
-  jsr via_initialize_timers
+  jsr via_initialize_timer1_tick_timer
+
+  lda #0
+  sta BLINK_LED_BLINK_TIME
 
   ; initialize our irq counter
   lda #0
@@ -122,7 +132,7 @@ reset:
 
 
 loop:
-  ; jsr clear_screen_and_print_irq_counter
+  jsr clear_screen_and_print_irq_counter
   jsr blink_led_on_delay
   jmp loop
 
@@ -131,25 +141,24 @@ loop:
 ; ------------------------------
 
 blink_led_on_delay:
+  sec
+  lda TICKS
+  sbc BLINK_LED_BLINK_TIME
+
+  ; check if 250 ms have passed
+  cmp #25
+  bcc blink_led__no_blink
+
   ; toggle the lowest bit on port a
-  jsr blink_delay
   lda VIA_PORT_A
   eor #%00000001
   sta VIA_PORT_A
 
-blink_delay:
-  lda #$50
-  sta VIA_T1_CL
-  lda #$C3
-  sta VIA_T1_CH
+  ; store lowest byte of ticks as new toggle time
+  lda TICKS
+  sta BLINK_LED_BLINK_TIME
 
-blink_delay__wait:
-  ; check if bit 6 of the IFR was set to see if the timer is done
-  lda VIA_IFR
-  and #%01000000
-  beq blink_delay__wait
-
-  lda VIA_T1_CL
+blink_led__no_blink:
   rts
 
 clear_screen_and_print_irq_counter:
@@ -227,10 +236,16 @@ lcd_display_initialize:
 
   rts
 
+via_set_all_interrupts_off:
+  lda #0
+  sta VIA_IER
+  rts
+
 via_initialize_ca1_interrupts:
   ; set intterupts on with MSB
   ; set CA1 interrupts on with a[1]
-  lda #%10000010
+  lda VIA_IER
+  ora #%10000010
   sta VIA_IER
 
   ; setting PCR register to 0 gives us
@@ -240,10 +255,32 @@ via_initialize_ca1_interrupts:
 
   rts
 
-via_initialize_timers:
-  ; use ACR to set timer 1 to timed interrupt each time T1 is loaded
+
+via_initialize_timer1_tick_timer:
+  ; initialize ticks to 0
   lda #0
+  sta TICKS
+  sta TICKS + 1
+  sta TICKS + 2
+  sta TICKS + 3
+
+  ; turn on interrupts for timer 1
+  lda VIA_IER
+  ora #%11000000
+  sta VIA_IER
+
+  ; use ACR to set timer 1 to free run mode
+  lda #%01000000
   sta VIA_ACR
+
+
+  ; set timer interval to:
+  ; 10 ms = 10,000 micro seconds = $2710 micro seconds
+  lda #$27
+  sta VIA_T1_CL
+  lda #$10
+
+  sta VIA_T1_CH
   rts
 
 
@@ -294,16 +331,24 @@ lcd_display_send_instruction:
   ; send the instruction to the display instr register
   sta VIA_PORT_B
 
+  ; save the lower bits of port a so we can leave them
+  ; unmodified
+  lda VIA_PORT_A
+  and #%00011111
+  sta TMP
+
   ; set Enable, Register select, and Read write to 0
-  lda #0
+  lda TMP
   sta VIA_PORT_A
 
   ; briefly set the enable instruction to kick off
   ; display processing of instruction
-  lda #VIA_PORT_A_LCD_E_BIT
+  lda TMP
+  ora #VIA_PORT_A_LCD_E_BIT
   sta VIA_PORT_A
 
-  lda #0
+  ; turn off all three again
+  lda TMP
   sta VIA_PORT_A
 
   rts
@@ -328,19 +373,29 @@ lcd_read_busy_flag_and_address:
   lda #%00000000
   sta VIA_DDR_B
 
+  ; save the lower bits of port a so we can leave them
+  ; unmodified
+  lda VIA_PORT_A
+  and #%00011111
+  sta TMP
+
   ; set Enable, Register select to 0, Read write to 1
-  lda VIA_PORT_A_LCD_RW_BIT
+  lda TMP
+  ora #VIA_PORT_A_LCD_RW_BIT
   sta VIA_PORT_A
 
   ; briefly set the enable instruction to kick off
   ; display processing of instruction
-  lda #(VIA_PORT_A_LCD_E_BIT | VIA_PORT_A_LCD_RW_BIT)
+  lda TMP
+  ora #(VIA_PORT_A_LCD_E_BIT | VIA_PORT_A_LCD_RW_BIT)
   sta VIA_PORT_A
 
   ; read the busy flag data
   ldx VIA_PORT_B
 
-  lda VIA_PORT_A_LCD_RW_BIT
+  ; set Enable, Register select to 0, Read write to 1
+  lda TMP
+  ora #VIA_PORT_A_LCD_RW_BIT
   sta VIA_PORT_A
 
   ; restore DDRB as output
@@ -374,16 +429,28 @@ lcd_display_write_character:
   pha
 
   jsr lcd_spin_while_busy
-
+  ; write the character to port b
   sta VIA_PORT_B
-  lda #VIA_PORT_A_LCD_RS_BIT ; Set RS; Clear RW/E bits
 
+  ; save the lower bits of port a so we can leave them
+  ; unmodified
+  lda VIA_PORT_A
+  and #%00011111
+  sta TMP
+
+  ; set Enable, Register select to 1, Read write to 0
+  lda TMP
+  ora #VIA_PORT_A_LCD_RS_BIT
   sta VIA_PORT_A
-  lda #(VIA_PORT_A_LCD_RS_BIT | VIA_PORT_A_LCD_E_BIT)   ; Set E bit to send instruction
 
+  ; temporarily set enable bit
+  lda TMP
+  ora #(VIA_PORT_A_LCD_RS_BIT | VIA_PORT_A_LCD_E_BIT)   ; Set E bit to send instruction
   sta VIA_PORT_A
-  lda #VIA_PORT_A_LCD_RS_BIT ; Set RS; Clear RW/E bits
 
+  ; set Enable, Register select to 1, Read write to 0 back
+  lda TMP
+  ora #VIA_PORT_A_LCD_RS_BIT
   sta VIA_PORT_A
 
   pla
@@ -466,42 +533,57 @@ print_base_10_push_char__loop:
   sta PRINT_NUMBER_OUT,y ; pull null off the stack and add that to the string
   rts
 
+
 nmi:
   rti
 
 irq:
   pha
-  txa
-  pha
-  tya
-  pha
+
+  ; figure out which interrupts we need to service
   
-  sei
+  ; Timer 1 interrupt
+  lda VIA_IFR
+  and #%01000000
+  bne irq__timer_1
+
+  ; Timer CA1 interrupt
+  lda VIA_IFR
+  and #%00000010
+  bne irq__ca1
+
+  jmp irq__exit
+
+irq__timer_1:
+  ; clear the timer 1 interrupt
+  bit VIA_T1_CL
+
+  inc TICKS
+  bne irq__timer_1__exit
+  inc TICKS + 1
+  bne irq__timer_1__exit
+  inc TICKS + 2
+  bne irq__timer_1__exit
+  inc TICKS + 3
+
+irq__timer_1__exit:
+  jmp irq__exit
+
+irq__ca1:
+  ; clear the interrupt
+  lda VIA_PORT_A
+
+  ; increment our cunter
   inc IRQ_COUNTER
-  bne irq__exit
+  bne irq__cai__exit
   inc IRQ_COUNTER + 1
-  cli
+
+
+irq__cai__exit:
+  jmp irq__exit
+
 irq__exit:
-
-  ; delay to debounce
-  ldy #$9F
-  ldx #$FF
-irq__delay:
-  dex
-  bne irq__delay
-  ldx #$FF
-  dey
-  bne irq__delay
-
-  ; read port a to clear our interrupt from ca1
-  bit VIA_PORT_A
-
   pla
-  tay
-  pla
-  tax
-  pla
-
   rti
 
   .org $fffa
