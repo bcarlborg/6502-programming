@@ -51,10 +51,20 @@ VIA_PORT_A_LCD_RW_BIT = %01000000
 VIA_PORT_A_LCD_RS_BIT = %00100000
 
 ; 65C22 VIA CONSTANTS
+; via porta a and b
 VIA_PORT_B = $6000
 VIA_PORT_A = $6001
+; port a and b data direction registers
 VIA_DDR_B = $6002   
 VIA_DDR_A = $6003
+
+; timer 1 counter low and high
+VIA_T1_CL = $6004
+VIA_T1_CH = $6005
+
+; auxiliary control register
+VIA_ACR = $600B
+
 ; periferal control register
 VIA_PCR = $600C
 ; interrupt flags register
@@ -96,6 +106,9 @@ reset:
   ; enable interrupts on the ca1 line of the VIA
   jsr via_initialize_ca1_interrupts
 
+  ; initialize timers for blinking LED
+  jsr via_initialize_timers
+
   ; initialize our irq counter
   lda #0
   sta IRQ_COUNTER
@@ -125,16 +138,18 @@ blink_led_on_delay:
   sta VIA_PORT_A
 
 blink_delay:
-  pha
-  ldx #$FF
-blink_delay__outer_loop:
-  ldx #$FF
-blink_delay__inner_loop:
-  dex
-  bne blink_delay__inner_loop
-  dey
-  bne blink_delay__outer_loop
-  pla
+  lda #$50
+  sta VIA_T1_CL
+  lda #$C3
+  sta VIA_T1_CH
+
+blink_delay__wait:
+  ; check if bit 6 of the IFR was set to see if the timer is done
+  lda VIA_IFR
+  and #%01000000
+  beq blink_delay__wait
+
+  lda VIA_T1_CL
   rts
 
 clear_screen_and_print_irq_counter:
@@ -224,6 +239,13 @@ via_initialize_ca1_interrupts:
   sta VIA_PCR
 
   rts
+
+via_initialize_timers:
+  ; use ACR to set timer 1 to timed interrupt each time T1 is loaded
+  lda #0
+  sta VIA_ACR
+  rts
+
 
 ; ------------------------------
 ; lcd base instruction sub routines
