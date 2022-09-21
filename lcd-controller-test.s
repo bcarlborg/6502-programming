@@ -108,10 +108,12 @@ clear_screen_and_print_irq_counter:
   jsr lcd_display_return_home
 
   ; print a number from rom to the screen
+  sei
   lda IRQ_COUNTER
   sta PRINT_BASE_10_VALUE
   lda IRQ_COUNTER + 1
   sta PRINT_BASE_10_VALUE + 1
+  cli
   jsr lcd_display_write_base_10_number
   rts
 
