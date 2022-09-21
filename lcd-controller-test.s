@@ -77,12 +77,17 @@ PRINT_BASE_10_MOD_10 = $0202 ; 2 bytes
 
 PRINT_NUMBER_OUT = $0204 ; 6 bytes
 
-IRQ_COUNTER = $020A
+IRQ_COUNTER = $020A ; two bytes
+
+TMP = $020C ; 2 bytes
+
 
 
   ; program instructions begin at 8000
   .org $E000
 
+; TODO: make each thing we can do with this program a sub routine with its own
+; loop function so that we can easily switch between them and see what the options are
 
 reset:
   ; set intterrupts on
@@ -104,12 +109,33 @@ reset:
 
 
 loop:
-  jsr clear_screen_and_print_irq_counter
+  ; jsr clear_screen_and_print_irq_counter
+  jsr blink_led_on_delay
   jmp loop
 
 ; ------------------------------
 ; functional sub routines
 ; ------------------------------
+
+blink_led_on_delay:
+  ; toggle the lowest bit on port a
+  jsr blink_delay
+  lda VIA_PORT_A
+  eor #%00000001
+  sta VIA_PORT_A
+
+blink_delay:
+  pha
+  ldx #$FF
+blink_delay__outer_loop:
+  ldx #$FF
+blink_delay__inner_loop:
+  dex
+  bne blink_delay__inner_loop
+  dey
+  bne blink_delay__outer_loop
+  pla
+  rts
 
 clear_screen_and_print_irq_counter:
   jsr lcd_display_return_home
@@ -167,7 +193,7 @@ via_initialize_ports_for_display:
   ; set data direction of ports A and B
   lda #%11111111 ; set all of port B to output
   sta VIA_DDR_B
-  lda #%11100000 ; set top 3 bits of port A to output
+  lda #%11100001 ; set top 3 bits and last bit of port A to output
   sta VIA_DDR_A
   rts
 
