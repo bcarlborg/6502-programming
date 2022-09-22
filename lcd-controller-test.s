@@ -265,15 +265,14 @@ lcd_display_initialize:
   rts
 
 via_set_all_interrupts_off:
-  lda #0
+  lda #%01111111
   sta VIA_IER
   rts
 
 via_initialize_ca1_interrupts:
   ; set intterupts on with MSB
   ; set CA1 interrupts on with a[1]
-  lda VIA_IER
-  ora #%10000010
+  lda #%10000010
   sta VIA_IER
 
   ; setting PCR register to 0 gives us
@@ -293,8 +292,7 @@ via_initialize_timer1_tick_timer:
   sta TICKS + 3
 
   ; turn on interrupts for timer 1
-  lda VIA_IER
-  ora #%11000000
+  lda #%11000000
   sta VIA_IER
 
   ; use ACR to set timer 1 to free run mode
