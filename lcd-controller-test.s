@@ -1,5 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;     SYSTEM OVERVIEW
+;
 ;     =======================================
 ;     Addr space
 ;     =======================================
@@ -31,15 +33,26 @@
 ;     =======================================
 ;
 ;     VIA_PORT_B[0..7] --> LCD controlelr D[0..7]
-;     VIA_PORT_A[0]    --> LCD controller enable bit
-;     VIA_PORT_A[1]    --> LCD controller R/W bit
-;     VIA_PORT_A[2]    --> LCD controller RS bit
+;     VIA_PORT_A[7]    --> LCD controller enable bit
+;     VIA_PORT_A[6]    --> LCD controller R/W bit
+;     VIA_PORT_A[5]    --> LCD controller RS bit
+;
+;     =======================================
+;     65C22 VIA to blinking LED
+;     =======================================
+;
+;     VIA_PORT_A[0]    --> LED
+;
+;     =======================================
+;     65C22 VIA to button
+;     =======================================
+;
+;     VIA_PORT_A[CA1]   --> negative transition push button
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
 ; ------------------------------
-; constants
+; constants in ROM
 ; ------------------------------
 
 ; 65C22 to HD44780U
@@ -76,28 +89,51 @@ lcd_display_write_zero_terminated_string__input_low = $6004
 lcd_display_write_zero_terminated_string__input_high = $6005
 
 ; ------------------------------
-; variables
+; variables in RAM
 ; ------------------------------
 
-; helper variables
+; helper variable for passing a 16 bit
+; argument to a function
 ADDR_ARG_1 = $0000 ; 2 bytes
 
+; helper numbers for base 10 division
 PRINT_BASE_10_VALUE = $0200 ; 2 bytes
 PRINT_BASE_10_MOD_10 = $0202 ; 2 bytes
 
+; helper variable to store the number to write to screen
 PRINT_NUMBER_OUT = $0204 ; 6 bytes
 
+; counter of the number of times the ca1 irq has been triggered
 IRQ_COUNTER = $020A ; two bytes
 
+; count of time driven by timer 1. Incremented every 10 ms
 TICKS = $020C ; 4 bytes
 
+; time of the last LED blink. Is compared against ticks in
+; our prorgam loop to decide when to toggle the led
 BLINK_LED_BLINK_TIME = $0210 ; 1 byte
 
+; general purpose temporary variable!
+; don't expect it to be initialized before using it
+; and don't expect it to be preserved accross
+; function calls
 TMP = $0211 ; 2 bytes
 
+; time of the last lcd screen refresh. Is compared against ticks in
+; our prorgam loop to decide when to refresh the screen
 FRAME_TIME = $0213 ; 1 byte
 
+; initialize to -1
+; when set to a positive value, the ca1 interrupts are disabled
+; and the variable is decremented every 10ms until it is 0
+; when it is zero, ca1 interrupts are re-enabled, and the variable
+; is set to -1
+CA1_DEBOUNCE_DIABLE_TICKER = $0214 ; 1 byte
 
+
+; ------------------------------
+; THE PROGRAM!
+; ------------------------------
 
   ; program instructions begin at 8000
   .org $E000
@@ -238,6 +274,9 @@ initialize_variables:
   lda #0
   sta IRQ_COUNTER
   sta IRQ_COUNTER + 1
+
+  lda #-1
+  sta CA1_DEBOUNCE_DIABLE_TICKER
 
   rts
 
@@ -585,17 +624,56 @@ irq__timer_1:
   bit VIA_T1_CL
 
   inc TICKS
-  bne irq__timer_1__exit
+  bne irq__timer_1__post_ticks
   inc TICKS + 1
-  bne irq__timer_1__exit
+  bne irq__timer_1__post_ticks
   inc TICKS + 2
-  bne irq__timer_1__exit
+  bne irq__timer_1__post_ticks
   inc TICKS + 3
+irq__timer_1__post_ticks:
+
+  ; check if we need to update our ca1 disable timers
+  ; if CA1_DEBOUNCE_DIABLE_TICKER is -1, do nothing
+  lda CA1_DEBOUNCE_DIABLE_TICKER
+  sec
+  cmp #0
+  bcc irq__timer_1__post_ca1_toggle
+
+  ; if it is zero, re-enable interrupts
+  beq irq__timer_1__ca1_interrupt_enable
+
+  ; if it is greater than zero, decrement the counter
+  bcs irq__timer_1__ca1_interrupt_disable_decrement
+  jmp irq__timer_1__post_ca1_toggle
+
+irq__timer_1__ca1_interrupt_enable:
+  ; enable ca1 interrupts again
+  lda #%10000010
+  sta VIA_IER
+
+  ; set debounce counter to -1 so we don't keep disabling
+  lda #-1
+  sta CA1_DEBOUNCE_DIABLE_TICKER
+  jmp irq__timer_1__post_ca1_toggle
+
+irq__timer_1__ca1_interrupt_disable_decrement:
+  dec CA1_DEBOUNCE_DIABLE_TICKER
+  jmp irq__timer_1__post_ca1_toggle
+
+irq__timer_1__post_ca1_toggle:
 
 irq__timer_1__exit:
   jmp irq__exit
 
 irq__ca1:
+  ; disable ca1 interrupts
+  lda #%00000010
+  sta VIA_IER
+
+  ; disable ca1 interrupts for 370 ms
+  lda #37
+  sta CA1_DEBOUNCE_DIABLE_TICKER
+
   ; clear the interrupt
   lda VIA_PORT_A
 
@@ -603,7 +681,6 @@ irq__ca1:
   inc IRQ_COUNTER
   bne irq__cai__exit
   inc IRQ_COUNTER + 1
-
 
 irq__cai__exit:
   jmp irq__exit
