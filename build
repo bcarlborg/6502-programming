@@ -1,4 +1,13 @@
 vasm6502_oldstyle -dotdir -Fvobj -o main.obj main.s
+echo ""
+echo ""
+
 vasm6502_oldstyle -dotdir -Fvobj -o lcd-control-routines.obj lcd-control-routines.s
-vlink -b rawbin2 -T link.config -o o.out lcd-control-routines.obj main.obj
+echo ""
+echo ""
+
+vlink -b rawbin2 -T link.config -o o.out main.obj lcd-control-routines.obj
+echo ""
+echo ""
+
 minipro -p AT28C64B -w o.out
