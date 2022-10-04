@@ -10,11 +10,6 @@ PROJECT TODOS:
     - naming convention
   - decide on a calling convention (registers etc)
 
-PROJECT IDEAS:
-- Psuedo Random number generator
-- Frogger like program on LCD display
-- Selections from Truisms emulator
-- Text based adventure game on lcd with two button interface
-
-COMPLETE
-- move in progress files to git repository
+Immediate todos
+- create a more modular way to register interrupt handlers, that way
+  I can move the timing logic out of main
