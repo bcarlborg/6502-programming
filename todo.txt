@@ -4,7 +4,8 @@ PROJECT TODOS:
   - link to external device spec sheets
   - link to mini pro along with vasm
   - instalation recommendations? dependencies?
-- create a makefile for compiling and uploading code
+
+- code quality
   - find a style guide + general tips for assembly programming (maybe a linter?)
     - comment style
     - naming convention

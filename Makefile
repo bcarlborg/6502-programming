@@ -1,6 +1,7 @@
-# Unix, using vasm assembler and vlink linker
-# - vasm  information: http://sun.hasenbraten.de/vasm/
-# - vlink information: http://sun.hasenbraten.de/vasm/
+# Unix, using vasm assembler, vlink linker, miniPRO chip programmer
+# - vasm    information : http://sun.hasenbraten.de/vasm/
+# - vlink   information : http://sun.hasenbraten.de/vasm/
+# - minipro information : https://gitlab.com/DavidGriffith/minipro/
 
 # ###############################################
 # ASSEMBLER CONFIGURATION
@@ -62,7 +63,7 @@ upload: $(TARGET)
 	$(UPLOAD) $(UPLOAD_FLAGS) $(UPLOAD_OUT)$(TARGET)
 
 clean:
-	$(RM) $(OBJECTS_DIR)/* $(TARGET)
+	$(RM) $(OBJECTS_DIR)* $(TARGET)
 
 # ###############################################
 # INDIVIDUAL TARGETS
