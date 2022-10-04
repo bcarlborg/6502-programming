@@ -51,7 +51,7 @@
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  .include 'global_constants.s'
+  .include 'global_constants.h.s'
 
 ; ------------------------------
 ; variables in RAM

@@ -1,4 +1,4 @@
-  .include 'global_constants.s'
+  .include 'global_constants.h.s'
 
   .section ".variables"
 
