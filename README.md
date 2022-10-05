@@ -23,21 +23,21 @@ The repository has the following structure
 │
 ├── link.config              : Linker script used by vlink
 │
-├── global_utilities         : A directory containing helper routines and header files that
+├── global_utilities/        : A directory containing helper routines and header files that
 │   ├── ...header files      : can be used in any project
 │   └── ...assembly files
 │
-├── objs                     : Directory conaining all output and intermediary object files
+├── objs/                    : Directory conaining all output and intermediary object files
 │   ├── ...header files      : files from builds and output executables
 │   └── ...object files
 │
-└── projects                 : Directories containing all project specific code. Each of
-    ├── project_1            : these projcts can be built and uploaded to the cpu system on
-    │   ├── DEMO.MD          : their own. Each project contains its own readme that contains
+└── projects/                : Directories containing all project specific code. Each of
+    ├── project_1/           : these projcts can be built and uploaded to the cpu system on
+    │   ├── README.md        : their own. Each project contains its own readme that contains
     │   ├── *.s              : info about that specific project along with demos.
     │   └── main.s           :
-    ├── project_2            : Most projects rely in some way on a helper in global_utilities,
-    │   ├── DEMO.MD          : and the objects for these projects are build into objs/
+    ├── project_2/           : Most projects rely in some way on a helper in global_utilities,
+    │   ├── README.md        : and the objects for these projects are build into objs/
     │   ├── *.s
     │   └── main.s
     └── ... projects
@@ -51,7 +51,8 @@ The repository has the following structure
   - Describes the toolchain used to assemble and link binaries along with where those tools can be found and built.
   - Provides an overview of some in code constructs that are used frequently throughout the project.
   - Describes basic style and conventions used in the programs.
-- [Demos!](DEMOS.md) : Demos of the various projects contained in this repository
+- Project specific info : This repository contains many sub projects that can be built and uploaded to the 6502 system build here. Each of those projects has a README.md in its respective `projects/` directory. That readme will contain info about the specific project along with demos of the project.
+  - For example see the base_print_test project readme [here](projects/base_print_test/README.md)
 
 
 ## Selected Images and Demos
