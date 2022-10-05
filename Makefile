@@ -40,8 +40,6 @@ RM = rm -f
 # ###############################################
 TARGET = 6502.out
 OBJECTS_DIR = objs/
-OBJECTS = $(OBJECTS_DIR)main.obj \
-					$(OBJECTS_DIR)lcd-control-routines.obj 
 
 
 # ###############################################
@@ -50,27 +48,64 @@ OBJECTS = $(OBJECTS_DIR)main.obj \
 # FIRST TARGET IN THE FILE IS THE DEFAULT
 # ###############################################
 
-$(TARGET): $(OBJECTS)
-	$(LN) $(LN_FLAGS) $(LN_OUT) $@ $^
-
+default: base_print_test
 
 # ###############################################
 # GLOBAL TARGETS
 # ###############################################
-all: $(TARGET)
-
-upload: $(TARGET)
-	$(UPLOAD) $(UPLOAD_FLAGS) $(UPLOAD_OUT)$(TARGET)
-
 clean:
-	$(RM) $(OBJECTS_DIR)* $(TARGET)
+	$(RM) $(OBJECTS_DIR)*
+
+all: base_print_test
+
 
 # ###############################################
-# INDIVIDUAL TARGETS
+# GLOBAL_UTILITIES_TARGETS
 # ###############################################
 
-$(OBJECTS_DIR)main.obj: global_constants.h.s main.s 
-	$(AS) $(AS_FLAGS) $(AS_OUT)$@ main.s
+GLOBAL_UTILITIES_DIRECTORY = global_utilities/
+GLOBAL_UTILITIES_OBJECT_PREFIX = $(OBJECTS_DIR)global_utils_
+GLOBAL_UTILITIES_HEADERS = $(GLOBAL_UTILITIES_DIRECTORY)global_constants.h.s
+GLOBAL_UTILITIES_OBJECTS = $(GLOBAL_UTILITIES_OBJECT_PREFIX)lcd-control-routines.obj
 
-$(OBJECTS_DIR)lcd-control-routines.obj: global_constants.h.s lcd-control-routines.s 
-	$(AS) $(AS_FLAGS) $(AS_OUT)$@ lcd-control-routines.s
+global_utilities: $(GLOBAL_UTILITIES_OBJECT_PREFIX)lcd-control-routines.obj
+
+$(GLOBAL_UTILITIES_OBJECT_PREFIX)lcd-control-routines.obj: \
+			$(GLOBAL_UTILITIES_HEADERS) \
+			$(GLOBAL_UTILITIES_DIRECTORY)lcd-control-routines.s 
+	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(GLOBAL_UTILITIES_DIRECTORY)lcd-control-routines.s
+
+
+# ###############################################
+# BASE_PRINT_TEST PROJECT
+# ###############################################
+
+# constants
+BASE_PRINT_TEST_OBJECT_PREFIX = $(OBJECTS_DIR)base_print_test_
+BASE_PRINT_TEST_DIR = projects/base_print_test/
+
+# main target: simply points to main executable
+base_print_test: $(BASE_PRINT_TEST_OBJECT_PREFIX)executable.out
+
+# target for uploading main executable
+upload_base_print_test: $(BASE_PRINT_TEST_OBJECT_PREFIX)executable.out
+	$(UPLOAD) $(UPLOAD_FLAGS) $(UPLOAD_OUT)$(BASE_PRINT_TEST_OBJECT_PREFIX)executable.out
+
+# target to clean all of teh base print test objects and executables
+base_print_test_clean:
+	$(RM) $(BASE_PRINT_TEST_OBJECT_PREFIX)
+
+# target for main executable
+$(BASE_PRINT_TEST_OBJECT_PREFIX)executable.out: \
+			$(BASE_PRINT_TEST_OBJECT_PREFIX)main.obj \
+			$(GLOBAL_UTILITIES_HEADERS) \
+			$(GLOBAL_UTILITIES_OBJECTS)
+	$(LN) $(LN_FLAGS) $(LN_OUT)$@ \
+		$(BASE_PRINT_TEST_OBJECT_PREFIX)main.obj \
+		$(GLOBAL_UTILITIES_OBJECTS)
+
+$(BASE_PRINT_TEST_OBJECT_PREFIX)main.obj: \
+			$(GLOBAL_UTILITIES_HEADERS) \
+			$(BASE_PRINT_TEST_DIR)main.s
+	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(BASE_PRINT_TEST_DIR)main.s
+
