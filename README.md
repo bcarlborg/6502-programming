@@ -7,29 +7,40 @@ The system these programs are designed for is similar to the one implemented in 
 
 The repository has the following structure
 ```
-TODO 
-6502-programming/
-├── README.md                  : Repository Overview 
+6502-programming
+├── README.md                : Project overview
 │
-├── ARCHITECTURE.md            : Description of the projects 65C02 system hardware and configuration
+├── ARCHITECTURE.md          : Information about the computer system and hardware
 │
-├── PROGRAMMERS_GUIDE.md       : Describes the system from the perspective of a programmer writing 
-│                              : assembly code to run on this system
+├── PROGRAMMERS_GUIDE.md     : Information needed to write, assemble, and link programs
+│                            : for this system
 │
-├── Makefile                   : Used for assmebling and linking every project
+├── todo.txt                 : A variably up-to-date mostly unoficial list of things to do
+│                            : for this project
 │
-├── global_constants.h.s
+├── Makefile                 : Makefile with targets and recipes to build every project
+│                            : see PROGRAMMERS_GUIDE.md for information on how to use it
 │
-├── lcd-control-routines.s
+├── link.config              : Linker script used by vlink
 │
-├── link.config
+├── global_utilities         : A directory containing helper routines and header files that
+│   ├── ...header files      : can be used in any project
+│   └── ...assembly files
 │
-├── main.s
+├── objs                     : Directory conaining all output and intermediary object files
+│   ├── ...header files      : files from builds and output executables
+│   └── ...object files
 │
-├── objs                       : directory containing object files and executables generated
-│   └── ... .obj files         : generated in compilation
-│
-└── todo.txt                   : a mostly out of date list of planned work for this project
+└── projects                 : Directories containing all project specific code. Each of
+    ├── project_1            : these projcts can be built and uploaded to the cpu system on
+    │   ├── DEMO.MD          : their own. Each project contains its own readme that contains
+    │   ├── *.s              : info about that specific project along with demos.
+    │   └── main.s           :
+    ├── project_2            : Most projects rely in some way on a helper in global_utilities,
+    │   ├── DEMO.MD          : and the objects for these projects are build into objs/
+    │   ├── *.s
+    │   └── main.s
+    └── ... projects
 ```
 
 
