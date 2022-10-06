@@ -43,6 +43,22 @@ CA1_DEBOUNCE_DIABLE_TICKER: .byte $FF ; 1 byte
 ; press is done being processed, it can be set to 0
 BUTTON_1_PRESSED: .byte $FF ; 1 byte
 
+; A variable indicating if a button was pressed
+; will be set to one when pressed, once the button
+; press is done being processed, it can be set to 0
+BUTTON_2_PRESSED: .byte $FF ; 1 byte
+
+; A variable indicating if a button was pressed
+; will be set to one when pressed, once the button
+; press is done being processed, it can be set to 0
+BUTTON_3_PRESSED: .byte $FF ; 1 byte
+
+; A variable indicating if a button was pressed
+; will be set to one when pressed, once the button
+; press is done being processed, it can be set to 0
+BUTTON_4_PRESSED: .byte $FF ; 1 byte
+
+
 ; ------------------------------
 ; initialized data
 ; ------------------------------
@@ -83,9 +99,9 @@ reset_harness:
 
 loop_harness:
   jsr process_button_1_press
-  ; jsr process_button_2_press
-  ; jsr process_button_3_press
-  ; jsr process_button_4_press
+  jsr process_button_2_press
+  jsr process_button_3_press
+  jsr process_button_4_press
   
   ; jsr print_data_to_lcd_screen
   
@@ -103,6 +119,9 @@ reset:
 loop:
   rts
 
+;
+; BUTTON 1
+;
 on_button_1_press:
   ; increment our IRQ counter
   inc IRQ_COUNTER
@@ -111,13 +130,66 @@ on_button_1_press:
 on_button_1_press__inc_counter_over:
   rts
 
+;
+; BUTTON 2
+;
 on_button_2_press:
+  ; increment our IRQ counter
+  inc IRQ_COUNTER
+  bne on_button_2_press__inc_counter_over_1
+  inc IRQ_COUNTER + 1
+on_button_2_press__inc_counter_over_1:
+
+  inc IRQ_COUNTER
+  bne on_button_2_press__inc_counter_over_2
+  inc IRQ_COUNTER + 1
+on_button_2_press__inc_counter_over_2:
+
+  inc IRQ_COUNTER
+  bne on_button_2_press__inc_counter_over_3
+  inc IRQ_COUNTER + 1
+on_button_2_press__inc_counter_over_3:
+
+  inc IRQ_COUNTER
+  bne on_button_2_press__inc_counter_over
+  inc IRQ_COUNTER + 1
+
+on_button_2_press__inc_counter_over:
   rts
 
+;
+; BUTTON 3
+;
 on_button_3_press:
+  lda IRQ_COUNTER
+  beq on_button_3_press__dec_upper
+
+  dec IRQ_COUNTER
+  jmp on_button_3_press__inc_counter_over
+
+on_button_3_press__dec_upper:
+  dec IRQ_COUNTER
+  dec IRQ_COUNTER + 1
+
+on_button_3_press__inc_counter_over:
   rts
 
+
+;
+; BUTTON 4
+;
 on_button_4_press:
+  ; increment our IRQ counter
+  inc IRQ_COUNTER
+  bne on_button_4_press__inc_counter_over_1
+  inc IRQ_COUNTER + 1
+on_button_4_press__inc_counter_over_1:
+
+  inc IRQ_COUNTER
+  bne on_button_4_press__inc_counter_over
+  inc IRQ_COUNTER + 1
+
+on_button_4_press__inc_counter_over:
   rts
 
 
@@ -223,6 +295,9 @@ via_initialize_button_interrupts:
 
   lda #0
   sta BUTTON_1_PRESSED
+  sta BUTTON_2_PRESSED
+  sta BUTTON_3_PRESSED
+  sta BUTTON_4_PRESSED
 
   rts
 
@@ -257,6 +332,9 @@ via_initialize_timer1_tick_timer:
 ; Button Interrup Helpers
 ; ------------------------------
 
+;
+; BUTTON 1
+;
 process_button_1_press:
   lda BUTTON_1_PRESSED
   beq process_button_1_press__exit
@@ -269,6 +347,58 @@ process_button_1_press:
 
 process_button_1_press__exit:
   rts
+
+;
+; BUTTON 2
+;
+process_button_2_press:
+  lda BUTTON_2_PRESSED
+  beq process_button_2_press__exit
+  
+  jsr on_button_2_press
+
+  ; mark button 1 as processed
+  lda #0
+  sta BUTTON_2_PRESSED
+
+process_button_2_press__exit:
+  rts
+
+;
+; BUTTON 3
+;
+process_button_3_press:
+  lda BUTTON_3_PRESSED
+  beq process_button_3_press__exit
+  
+  jsr on_button_3_press
+
+  ; mark button 3 as processed
+  lda #0
+  sta BUTTON_3_PRESSED
+
+process_button_3_press__exit:
+  rts
+
+;
+; BUTTON 4
+;
+process_button_4_press:
+  lda BUTTON_4_PRESSED
+  beq process_button_4_press__exit
+  
+  jsr on_button_4_press
+
+  ; mark button 4 as processed
+  lda #0
+  sta BUTTON_4_PRESSED
+
+process_button_4_press__exit:
+  rts
+
+;
+; IRQ Handlers
+;
 
 nmi:
   rti
@@ -347,14 +477,46 @@ irq__ca1:
 
   ; clear the interrupt
   lda VIA_PORT_A
-  ; tax ; save value for later
+  tax              ; save value for later
   
   and #%00000001
-  beq irq__cai__exit
+  beq irq__cai__button_2_check
   
   ; mark button 1 as pressed
   lda #1
   sta BUTTON_1_PRESSED
+  jmp irq__cai__exit
+
+irq__cai__button_2_check:
+  txa
+  and #%00000010
+  beq irq__cai__button_3_check
+
+  ; mark button 2 as pressed
+  lda #1
+  sta BUTTON_2_PRESSED
+  jmp irq__cai__exit
+
+irq__cai__button_3_check:
+  txa
+  and #%00000100
+  beq irq__cai__button_4_check
+
+  ; mark button 3 as pressed
+  lda #1
+  sta BUTTON_3_PRESSED
+  jmp irq__cai__exit
+
+irq__cai__button_4_check:
+  txa
+  and #%00001000
+  beq irq__cai__exit
+
+  ; mark button 4 as pressed
+  lda #1
+  sta BUTTON_4_PRESSED
+
+  jmp irq__cai__exit
 
 irq__cai__exit:
   jmp irq__exit
