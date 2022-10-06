@@ -93,7 +93,7 @@ upload_base_print_test: $(BASE_PRINT_TEST_OBJECT_PREFIX)executable.out
 
 # target to clean all of teh base print test objects and executables
 base_print_test_clean:
-	$(RM) $(BASE_PRINT_TEST_OBJECT_PREFIX)
+	$(RM) $(BASE_PRINT_TEST_OBJECT_PREFIX)*
 
 # target for main executable
 $(BASE_PRINT_TEST_OBJECT_PREFIX)executable.out: \
@@ -108,4 +108,38 @@ $(BASE_PRINT_TEST_OBJECT_PREFIX)main.obj: \
 			$(GLOBAL_UTILITIES_HEADERS) \
 			$(BASE_PRINT_TEST_DIR)main.s
 	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(BASE_PRINT_TEST_DIR)main.s
+
+
+# ###############################################
+# BLINKING LIGHT TIMER PROJECT
+# ###############################################
+
+# constants
+BLINKING_LIGHT_TIMER_OBJECT_PREFIX = $(OBJECTS_DIR)blinking_light_timer_
+BLINKING_LIGHT_TIMER_DIR = projects/blinking_light_timer/
+
+# main target: simply points to main executable
+blinking_light_timer: $(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)executable.out
+
+# target for uploading main executable
+upload_blinking_light_timer: $(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)executable.out
+	$(UPLOAD) $(UPLOAD_FLAGS) $(UPLOAD_OUT)$(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)executable.out
+
+# target to clean all of teh base print test objects and executables
+blinking_light_timer_clean:
+	$(RM) $(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)*
+
+# target for main executable
+$(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)executable.out: \
+			$(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)main.obj \
+			$(GLOBAL_UTILITIES_HEADERS) \
+			$(GLOBAL_UTILITIES_OBJECTS)
+	$(LN) $(LN_FLAGS) $(LN_OUT)$@ \
+		$(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)main.obj \
+		$(GLOBAL_UTILITIES_OBJECTS)
+
+$(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)main.obj: \
+			$(GLOBAL_UTILITIES_HEADERS) \
+			$(BLINKING_LIGHT_TIMER_DIR)main.s
+	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(BLINKING_LIGHT_TIMER_DIR)main.s
 

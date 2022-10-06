@@ -12,8 +12,7 @@ ADDR_ARG_1: .byte $FF,$FF; 2 bytes
 
   .section ".variables"
 ; general purpose temporary variable!
-; don't expect it to be initialized before using it
-; and don't expect it to be preserved accross
+; don't expect it to be preserved accross
 ; function calls
 TMP: .byte $FF,$FF ; 2 bytes
   .global TMP
@@ -39,6 +38,11 @@ FRAME_TIME: .byte $FF; 1 byte
 ; is set to -1
 CA1_DEBOUNCE_DIABLE_TICKER: .byte $FF ; 1 byte
 
+; A variable indicating if a button was pressed
+; will be set to one when pressed, once the button
+; press is done being processed, it can be set to 0
+BUTTON_1_PRESSED: .byte $FF ; 1 byte
+
 ; ------------------------------
 ; initialized data
 ; ------------------------------
@@ -46,26 +50,26 @@ CA1_DEBOUNCE_DIABLE_TICKER: .byte $FF ; 1 byte
   .section '.initialized_data'
 basic_print_test__message: .asciiz "Hi!"
 basic_print_test__number: .word 42
-
-
-; ------------------------------
-; THE PROGRAM!
-; ------------------------------
   
 
   .section '.body'
-reset:
+; ------------------------------
+; THE HARNESS!
+; ------------------------------
+
+reset_harness:
   ; set intterrupts as allowed on 6502
   cli
 
   ; diable all via interrupts, enable then as needed after
   jsr via_set_all_interrupts_off
 
-  ; enable interrupts on the ca1 line of the VIA
-  jsr via_initialize_ca1_interrupts
+  ; enable interrupts for buttons
+  jsr via_initialize_button_interrupts
 
   ; initialize timers for blinking LED
   jsr via_initialize_timer1_tick_timer
+
 
   ; initialize variables
   jsr initialize_variables
@@ -73,14 +77,48 @@ reset:
   ; print a string to the screen
   jsr via_initialize_ports_for_display
   jsr lcd_display_initialize
- 
-  ; jsr basic_print_test
 
+  jsr reset
+ 
+
+loop_harness:
+  jsr process_button_1_press
+  ; jsr process_button_2_press
+  ; jsr process_button_3_press
+  ; jsr process_button_4_press
+  
+  ; jsr print_data_to_lcd_screen
+  
+  jsr clear_screen_and_print_irq_counter
+
+  jsr loop
+  jmp loop_harness
+
+; ------------------------------
+; THE PROGRAM!
+; ------------------------------
+reset:
+  rts
 
 loop:
-  jsr clear_screen_and_print_irq_counter
-  jsr blink_led
-  jmp loop
+  rts
+
+on_button_1_press:
+  ; increment our IRQ counter
+  inc IRQ_COUNTER
+  bne on_button_1_press__inc_counter_over
+  inc IRQ_COUNTER + 1
+on_button_1_press__inc_counter_over:
+  rts
+
+on_button_2_press:
+  rts
+
+on_button_3_press:
+  rts
+
+on_button_4_press:
+  rts
 
 
   .section '.routines'
@@ -88,30 +126,6 @@ loop:
 ; ------------------------------
 ; functional sub routines
 ; ------------------------------
-
-blink_led:
-  sec
-  lda TICKS
-  sbc BLINK_LED_BLINK_TIME
-
-  ; check if 250 ms have passed
-  cmp #25
-
-  ; if not, exit
-  bcc blink_led__no_blink
-
-  ; if so store lowest byte of ticks as new toggle time
-  lda TICKS
-  sta BLINK_LED_BLINK_TIME
-
-  ; toggle the lowest bit on port a
-  lda VIA_PORT_A
-  eor #%00000001
-  sta VIA_PORT_A
-
-
-blink_led__no_blink:
-  rts
 
 clear_screen_and_print_irq_counter:
   sec
@@ -145,37 +159,6 @@ clear_screen_and_print_irq_counter:
 clear_screen_and_print_irq_counter__exit:
   rts
 
-basic_print_test:
-  lda #(<basic_print_test__message)
-  sta ADDR_ARG_1
- 
-  lda #(>basic_print_test__message)
-  sta ADDR_ARG_1 + 1
-  
-  jsr lcd_display_write_zero_terminated_string
-
-  lda #" "
-  jsr lcd_display_write_character
-
-  ; print a number from rom to the screen
-  lda basic_print_test__number
-  sta PRINT_BASE_10_VALUE
-  lda basic_print_test__number + 1
-  sta PRINT_BASE_10_VALUE + 1
-  jsr lcd_display_write_base_10_number
-
-  lda #" "
-  jsr lcd_display_write_character
-
-  ; dynamically print a number from rom to the screen
-  lda #$CD
-  sta PRINT_BASE_10_VALUE
-  lda #$AB
-  sta PRINT_BASE_10_VALUE + 1
-  jsr lcd_display_write_base_10_number
-  rts
-
-
 ; ------------------------------
 ; initialization sub routines
 ; ------------------------------
@@ -197,11 +180,13 @@ initialize_variables:
 
   rts
 
+; todo, have this function read exisitng values and or to ensure
+; we don't overwrite too many times
 via_initialize_ports_for_display:
   ; set data direction of ports A and B
   lda #%11111111 ; set all of port B to output
   sta VIA_DDR_B
-  lda #%11100001 ; set top 3 bits and last bit of port A to output
+  lda #%11100000 ; set top 3 bits and last bit of port A to output
   sta VIA_DDR_A
   rts
 
@@ -225,16 +210,19 @@ via_set_all_interrupts_off:
   sta VIA_IER
   rts
 
-via_initialize_ca1_interrupts:
+via_initialize_button_interrupts:
   ; set intterupts on with MSB
   ; set CA1 interrupts on with a[1]
   lda #%10000010
   sta VIA_IER
 
-  ; setting PCR register to 0 gives us
-  ; negative edge interrupts on CA1
-  lda #0
+  ; setting PCR register to 1 gives us
+  ; positive edge interrupts on CA1
+  lda #1
   sta VIA_PCR
+
+  lda #0
+  sta BUTTON_1_PRESSED
 
   rts
 
@@ -263,6 +251,23 @@ via_initialize_timer1_tick_timer:
   lda #$10
 
   sta VIA_T1_CH
+  rts
+
+; ------------------------------
+; Button Interrup Helpers
+; ------------------------------
+
+process_button_1_press:
+  lda BUTTON_1_PRESSED
+  beq process_button_1_press__exit
+  
+  jsr on_button_1_press
+
+  ; mark button 1 as processed
+  lda #0
+  sta BUTTON_1_PRESSED
+
+process_button_1_press__exit:
   rts
 
 nmi:
@@ -342,11 +347,14 @@ irq__ca1:
 
   ; clear the interrupt
   lda VIA_PORT_A
-
-  ; increment our cunter
-  inc IRQ_COUNTER
-  bne irq__cai__exit
-  inc IRQ_COUNTER + 1
+  ; tax ; save value for later
+  
+  and #%00000001
+  beq irq__cai__exit
+  
+  ; mark button 1 as pressed
+  lda #1
+  sta BUTTON_1_PRESSED
 
 irq__cai__exit:
   jmp irq__exit
@@ -356,6 +364,6 @@ irq__exit:
   rti
 
   .section '.vectors'
-  .word nmi
-  .word reset  ; our program
-  .word irq    ; unused interrupt vector
+  .word nmi            ; unused handler
+  .word reset_harness  ; our program
+  .word irq            ; main irq handler
