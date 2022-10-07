@@ -149,3 +149,37 @@ $(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)main.obj: \
 			$(BLINKING_LIGHT_TIMER_DIR)main.s
 	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(BLINKING_LIGHT_TIMER_DIR)main.s
 
+
+# ###############################################
+# SIMPLE TEXT EDITOR PROJECT
+# ###############################################
+
+# constants
+SIMPLE_TEXT_EDITOR_OBJECT_PREFIX = $(OBJECTS_DIR)simple_text_editor_
+SIMPLE_TEXT_EDITOR_DIR = projects/simple_text_editor/
+
+# main target: simply points to main executable
+simple_text_editor: $(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)executable.out
+
+# target for uploading main executable
+upload_simple_text_editor: $(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)executable.out
+	$(UPLOAD) $(UPLOAD_FLAGS) $(UPLOAD_OUT)$(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)executable.out
+
+# target to clean all of teh base print test objects and executables
+simple_text_editor_clean:
+	$(RM) $(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)*
+
+# target for main executable
+$(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)executable.out: \
+			$(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)main.obj \
+			$(GLOBAL_UTILITIES_HEADERS) \
+			$(GLOBAL_UTILITIES_OBJECTS)
+	$(LN) $(LN_FLAGS) $(LN_OUT)$@ \
+		$(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)main.obj \
+		$(GLOBAL_UTILITIES_OBJECTS)
+
+$(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)main.obj: \
+			$(GLOBAL_UTILITIES_HEADERS) \
+			$(SIMPLE_TEXT_EDITOR_DIR)main.s
+	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(SIMPLE_TEXT_EDITOR_DIR)main.s
+
