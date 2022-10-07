@@ -66,7 +66,8 @@ all: base_print_test
 GLOBAL_UTILITIES_DIRECTORY = global_utilities/
 GLOBAL_UTILITIES_OBJECT_PREFIX = $(OBJECTS_DIR)global_utils_
 GLOBAL_UTILITIES_HEADERS = $(GLOBAL_UTILITIES_DIRECTORY)global_constants.h.s
-GLOBAL_UTILITIES_OBJECTS = $(GLOBAL_UTILITIES_OBJECT_PREFIX)lcd-control-routines.obj
+GLOBAL_UTILITIES_OBJECTS = $(GLOBAL_UTILITIES_OBJECT_PREFIX)lcd-control-routines.obj \
+													 $(GLOBAL_UTILITIES_OBJECT_PREFIX)program_harness.obj
 
 global_utilities: $(GLOBAL_UTILITIES_OBJECT_PREFIX)lcd-control-routines.obj
 
@@ -74,6 +75,11 @@ $(GLOBAL_UTILITIES_OBJECT_PREFIX)lcd-control-routines.obj: \
 			$(GLOBAL_UTILITIES_HEADERS) \
 			$(GLOBAL_UTILITIES_DIRECTORY)lcd-control-routines.s 
 	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(GLOBAL_UTILITIES_DIRECTORY)lcd-control-routines.s
+
+$(GLOBAL_UTILITIES_OBJECT_PREFIX)program_harness.obj: \
+			$(GLOBAL_UTILITIES_HEADERS) \
+			$(GLOBAL_UTILITIES_DIRECTORY)program_harness.s
+	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(GLOBAL_UTILITIES_DIRECTORY)program_harness.s
 
 
 # ###############################################
