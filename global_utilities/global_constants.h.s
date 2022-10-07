@@ -42,3 +42,6 @@ VIA_IFR = $600D
 
 ; interrupt enable register
 VIA_IER = $600E
+
+
+LCD_DISPLAY_ROW_TWO_CUROR = 41

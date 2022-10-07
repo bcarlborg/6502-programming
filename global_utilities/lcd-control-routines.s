@@ -11,6 +11,17 @@ PRINT_BASE_10_MOD_10: .byte $FF,$FF ; 2 bytes
 ; helper variable to store the number to write to screen
 PRINT_NUMBER_OUT: .byte $FF,$FF,$FF,$FF,$FF,$FF ; 6 bytes
 
+SCREEN_CURSOR_POS: .byte $FF; 1 byte
+  .global SCREEN_CURSOR_POS
+
+SCREEN_CURSOR_ROW: .byte $FF
+  .global SCREEN_CURSOR_ROW
+
+SCREEN_OUT_1: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
+  .global SCREEN_OUT_1
+
+SCREEN_OUT_2: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
+  .global SCREEN_OUT_2
 
   .section '.routines'
 
@@ -18,7 +29,69 @@ PRINT_NUMBER_OUT: .byte $FF,$FF,$FF,$FF,$FF,$FF ; 6 bytes
 ; printing sub routines
 ; ------------------------------
 
-; pass address of string in A
+lcd_display_clear_and_write_out:
+  .global lcd_display_clear_and_write_out
+  jsr lcd_display_clear_display
+  jsr lcd_display_return_home
+  ldy #0
+
+lcd_display_clear_and_write_out__print_line_1_inner:
+  tya
+  cmp #16
+  beq lcd_display_clear_and_write_out__print_line_1_exit
+  lda SCREEN_OUT_1,y
+  jsr lcd_display_write_character
+  iny
+  jmp lcd_display_clear_and_write_out__print_line_1_inner
+ 
+lcd_display_clear_and_write_out__print_line_1_exit:
+  ; set the cursor to line two
+  lda #40
+  jsr lcd_display_set_ddram
+
+  ldy #0
+  ; print line 2
+lcd_display_clear_and_write_out__print_line_2_inner:
+  tya
+  cmp #16
+  beq lcd_display_clear_and_write_out__print_line_2_exit
+  lda SCREEN_OUT_2,y
+  jsr lcd_display_write_character
+  iny
+  jmp lcd_display_clear_and_write_out__print_line_2_inner
+ 
+lcd_display_clear_and_write_out__print_line_2_exit:
+  lda SCREEN_CURSOR_ROW
+  beq lcd_display_clear_and_write_out__set_cursor__row_1
+
+  ; set cursor to row 2
+  lda #40
+  jmp lcd_display_clear_and_write_out__set_cursor__set_pos
+
+  ; set cursor to row 1
+lcd_display_clear_and_write_out__set_cursor__row_1:
+  lda #0
+
+lcd_display_clear_and_write_out__set_cursor__set_pos:
+  jsr lcd_display_set_ddram
+
+  lda SCREEN_CURSOR_POS
+  tax
+lcd_display_clear_and_write_out__set_cursor__set_pos__inner:
+  txa
+  beq lcd_display_clear_and_write_out__set_cursor__set_pos__exit
+  
+  dex
+  txa
+  jsr lcd_display_shift_cursor_right
+  tax
+  jmp lcd_display_clear_and_write_out__set_cursor__set_pos__inner
+
+lcd_display_clear_and_write_out__set_cursor__set_pos__exit:
+  rts
+
+
+; pass address of string in ADDR_ARG_1
 lcd_display_write_zero_terminated_string:
   .global lcd_display_write_zero_terminated_string
   ldy #0
@@ -151,6 +224,14 @@ print_base_10_push_char__loop:
 ; lcd base instruction sub routines
 ; ------------------------------
 
+; sets cursor pos to lower seven bits of A
+lcd_display_set_ddram:
+  pha
+  ora #%10000000 ; toggle top bit to set ddram
+  jsr lcd_display_send_instruction
+  pla
+  rts
+
 lcd_display_clear_display:
   .global lcd_display_clear_display
   lda #%00000001 ; clear the display
@@ -187,9 +268,17 @@ lcd_display_display_on:
 
 lcd_display_return_home:
   .global lcd_display_return_home
-  lda #%00000001
+  lda #%00000010
   jsr lcd_display_send_instruction
   rts
+
+lcd_display_shift_cursor_right:
+  pha
+  lda #%00010100
+  jsr lcd_display_send_instruction
+  pla
+  rts
+
 
 lcd_spin_while_busy:
   .global lcd_spin_while_busy

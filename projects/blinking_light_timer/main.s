@@ -17,9 +17,6 @@ ADDR_ARG_1: .byte $FF,$FF; 2 bytes
 TMP: .byte $FF,$FF ; 2 bytes
   .global TMP
 
-; counter of the number of times the ca1 irq has been triggered
-IRQ_COUNTER: .byte $FF,$FF ; two bytes
-
 ; count of time driven by timer 1. Incremented every 10 ms
 TICKS: .byte $FF,$FF,$FF,$FF ; 4 bytes
 
@@ -57,6 +54,11 @@ BUTTON_3_PRESSED: .byte $FF ; 1 byte
 ; will be set to one when pressed, once the button
 ; press is done being processed, it can be set to 0
 BUTTON_4_PRESSED: .byte $FF ; 1 byte
+
+; A variable indicating if a button was pressed
+; will be set to one when pressed, once the button
+; press is done being processed, it can be set to 0
+BUTTON_5_PRESSED: .byte $FF ; 1 byte
 
 
 ; ------------------------------
@@ -102,6 +104,7 @@ loop_harness:
   jsr process_button_2_press
   jsr process_button_3_press
   jsr process_button_4_press
+  jsr process_button_5_press
   
   ; jsr print_data_to_lcd_screen
   
@@ -122,74 +125,69 @@ loop:
 ;
 ; BUTTON 1
 ;
-on_button_1_press:
-  ; increment our IRQ counter
-  inc IRQ_COUNTER
-  bne on_button_1_press__inc_counter_over
-  inc IRQ_COUNTER + 1
-on_button_1_press__inc_counter_over:
+on_up_button_press:
+  lda SCREEN_CURSOR_ROW
+  beq on_up_button_press__exit
+  lda #0
+  sta SCREEN_CURSOR_ROW
+on_up_button_press__exit:
   rts
 
 ;
-; BUTTON 2
+; right button press handler
 ;
-on_button_2_press:
-  ; increment our IRQ counter
-  inc IRQ_COUNTER
-  bne on_button_2_press__inc_counter_over_1
-  inc IRQ_COUNTER + 1
-on_button_2_press__inc_counter_over_1:
-
-  inc IRQ_COUNTER
-  bne on_button_2_press__inc_counter_over_2
-  inc IRQ_COUNTER + 1
-on_button_2_press__inc_counter_over_2:
-
-  inc IRQ_COUNTER
-  bne on_button_2_press__inc_counter_over_3
-  inc IRQ_COUNTER + 1
-on_button_2_press__inc_counter_over_3:
-
-  inc IRQ_COUNTER
-  bne on_button_2_press__inc_counter_over
-  inc IRQ_COUNTER + 1
-
-on_button_2_press__inc_counter_over:
+on_right_button_press:
+  lda SCREEN_CURSOR_POS
+  clc
+  cmp #15
+  beq on_right_button_press__exit
+  inc SCREEN_CURSOR_POS
+on_right_button_press__exit:
   rts
 
 ;
-; BUTTON 3
+; down button press handler
 ;
-on_button_3_press:
-  lda IRQ_COUNTER
-  beq on_button_3_press__dec_upper
-
-  dec IRQ_COUNTER
-  jmp on_button_3_press__inc_counter_over
-
-on_button_3_press__dec_upper:
-  dec IRQ_COUNTER
-  dec IRQ_COUNTER + 1
-
-on_button_3_press__inc_counter_over:
+on_down_button_press:
+  lda SCREEN_CURSOR_ROW
+  bne on_down_button_press__exit 
+  lda #1
+  sta SCREEN_CURSOR_ROW
+on_down_button_press__exit:
   rts
 
 
 ;
-; BUTTON 4
+; left button press handler
 ;
-on_button_4_press:
-  ; increment our IRQ counter
-  inc IRQ_COUNTER
-  bne on_button_4_press__inc_counter_over_1
-  inc IRQ_COUNTER + 1
-on_button_4_press__inc_counter_over_1:
+on_left_button_press:
+  lda SCREEN_CURSOR_POS
+  beq on_left_button_press__exit
+  dec SCREEN_CURSOR_POS
+on_left_button_press__exit:
+  rts
 
-  inc IRQ_COUNTER
-  bne on_button_4_press__inc_counter_over
-  inc IRQ_COUNTER + 1
+;
+; action button handler
+;
+on_action_button_press:
+  LDA SCREEN_CURSOR_ROW
+  beq on_action_button_press___modify_first_row
 
-on_button_4_press__inc_counter_over:
+on_action_button_press___modify_second_row:
+  lda SCREEN_CURSOR_POS
+  tay
+  lda #'1'
+  sta SCREEN_OUT_2,Y
+  jmp on_action_button_press__exit
+
+on_action_button_press___modify_first_row:
+  lda SCREEN_CURSOR_POS
+  tay
+  lda #'1'
+  sta SCREEN_OUT_1,Y
+
+on_action_button_press__exit:
   rts
 
 
@@ -199,33 +197,25 @@ on_button_4_press__inc_counter_over:
 ; functional sub routines
 ; ------------------------------
 
+
 clear_screen_and_print_irq_counter:
   sec
   lda TICKS
   sbc FRAME_TIME
 
-  ; check if 50 ms have passed
-  cmp #5
+  ; check if 250 ms have passed
+  cmp #25
 
   ; if not exit
-  bcc clear_screen_and_print_irq_counter
+  bcc clear_screen_and_print_irq_counter__exit
 
   ; if so, then update frame time and continue
   lda TICKS
   sta FRAME_TIME
 
-  jsr lcd_display_return_home
-
-  ; print a number from rom to the screen
-  ; ensure no interrupts can happen while we are
-  ; in the loop
-  sei
-  lda IRQ_COUNTER
-  sta PRINT_BASE_10_VALUE
-  lda IRQ_COUNTER + 1
-  sta PRINT_BASE_10_VALUE + 1
-  cli
-  jsr lcd_display_write_base_10_number
+  ; update the screen
+  jsr lcd_display_clear_and_write_out
+  rts 
 
 
 clear_screen_and_print_irq_counter__exit:
@@ -242,14 +232,51 @@ initialize_variables:
   lda #0
   sta BLINK_LED_BLINK_TIME
 
-  ; initialize our irq counter
-  lda #0
-  sta IRQ_COUNTER
-  sta IRQ_COUNTER + 1
-
   lda #-1
   sta CA1_DEBOUNCE_DIABLE_TICKER
 
+  lda #41
+  sta SCREEN_CURSOR_POS
+
+  lda #' '
+  STA SCREEN_OUT_1
+  STA SCREEN_OUT_1 + 1
+  STA SCREEN_OUT_1 + 2
+  STA SCREEN_OUT_1 + 3
+  STA SCREEN_OUT_1 + 4
+  STA SCREEN_OUT_1 + 5
+  STA SCREEN_OUT_1 + 6
+  STA SCREEN_OUT_1 + 7
+  STA SCREEN_OUT_1 + 8
+  STA SCREEN_OUT_1 + 9
+  STA SCREEN_OUT_1 + 10
+  STA SCREEN_OUT_1 + 11
+  STA SCREEN_OUT_1 + 12
+  STA SCREEN_OUT_1 + 13
+  STA SCREEN_OUT_1 + 14
+  STA SCREEN_OUT_1 + 15
+
+  STA SCREEN_OUT_2
+  STA SCREEN_OUT_2 + 1
+  STA SCREEN_OUT_2 + 2
+  STA SCREEN_OUT_2 + 3
+  STA SCREEN_OUT_2 + 4
+  STA SCREEN_OUT_2 + 5
+  STA SCREEN_OUT_2 + 6
+  STA SCREEN_OUT_2 + 7
+  STA SCREEN_OUT_2 + 8
+  STA SCREEN_OUT_2 + 9
+  STA SCREEN_OUT_2 + 10
+  STA SCREEN_OUT_2 + 11
+  STA SCREEN_OUT_2 + 12
+  STA SCREEN_OUT_2 + 13
+  STA SCREEN_OUT_2 + 14
+  STA SCREEN_OUT_2 + 15
+
+  lda #0
+  sta SCREEN_CURSOR_ROW
+  lda #0
+  sta SCREEN_CURSOR_POS
   rts
 
 ; todo, have this function read exisitng values and or to ensure
@@ -264,6 +291,7 @@ via_initialize_ports_for_display:
 
 lcd_display_initialize:
   ; tell the display number of lines etc
+  jsr lcd_display_function_set
   jsr lcd_display_function_set
 
   ; clear the display
@@ -298,6 +326,7 @@ via_initialize_button_interrupts:
   sta BUTTON_2_PRESSED
   sta BUTTON_3_PRESSED
   sta BUTTON_4_PRESSED
+  sta BUTTON_5_PRESSED
 
   rts
 
@@ -339,7 +368,7 @@ process_button_1_press:
   lda BUTTON_1_PRESSED
   beq process_button_1_press__exit
   
-  jsr on_button_1_press
+  jsr on_up_button_press
 
   ; mark button 1 as processed
   lda #0
@@ -355,7 +384,7 @@ process_button_2_press:
   lda BUTTON_2_PRESSED
   beq process_button_2_press__exit
   
-  jsr on_button_2_press
+  jsr on_right_button_press
 
   ; mark button 1 as processed
   lda #0
@@ -371,7 +400,7 @@ process_button_3_press:
   lda BUTTON_3_PRESSED
   beq process_button_3_press__exit
   
-  jsr on_button_3_press
+  jsr on_down_button_press
 
   ; mark button 3 as processed
   lda #0
@@ -387,7 +416,7 @@ process_button_4_press:
   lda BUTTON_4_PRESSED
   beq process_button_4_press__exit
   
-  jsr on_button_4_press
+  jsr on_left_button_press
 
   ; mark button 4 as processed
   lda #0
@@ -395,6 +424,23 @@ process_button_4_press:
 
 process_button_4_press__exit:
   rts
+
+;
+; BUTTON 5
+;
+process_button_5_press:
+  lda BUTTON_5_PRESSED
+  beq process_button_5_press__exit
+  
+  jsr on_action_button_press
+
+  ; mark button 5 as processed
+  lda #0
+  sta BUTTON_5_PRESSED
+
+process_button_5_press__exit:
+  rts
+
 
 ;
 ; IRQ Handlers
@@ -510,11 +556,21 @@ irq__cai__button_3_check:
 irq__cai__button_4_check:
   txa
   and #%00001000
-  beq irq__cai__exit
+  beq irq__cai__button_5_check
 
   ; mark button 4 as pressed
   lda #1
   sta BUTTON_4_PRESSED
+  jmp irq__cai__exit
+
+irq__cai__button_5_check:
+  txa
+  and #%00010000
+  beq irq__cai__exit
+
+  ; mark button 5 as pressed
+  lda #1
+  sta BUTTON_5_PRESSED
 
   jmp irq__cai__exit
 
