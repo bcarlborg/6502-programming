@@ -6,20 +6,7 @@ PROJECT TODOS:
   - decide on a calling convention (registers etc)
 
 - Code structure
-  - clean up interrupts
-    - irq handler should simply update the ticks variable on timer interrupts
-    - and update a button pressed variable in memory for button presses
-      - then a function in a loop can check that variable and see if an interrupt was triggered
-      - how to call a routine in an irq handler?
-  - have some way to put looping and reset functions into the harness
-    - how can I have methods like onButton1Press that are implemented as empty functions unless
-      some symbol is specified
-  - wire four push buttons on system to be used in all projects
-    - have four functions that can be called for those buttons
-  - use array in memory of characters for printing to the screen
-    - have an lcd function that simply renders that array on every single frame
-    - maybe have a variable that does cursor type or cursor position as well
-    - have more than two lines available to display on the screen
+  - make a macro for loading and storing adrresses
 
 notes for the harness
 - loop and reset in the harness can be their own symbols loop_harness reset_harness,

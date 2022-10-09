@@ -13,6 +13,7 @@
 ; ------------------------------
 
   .section '.initialized_data'
+test_string: .asciiz "the answer is:"
   
 
   .section '.body'
@@ -21,7 +22,21 @@
 ; THE PROGRAM!
 ; ------------------------------
 reset:
-  .global reset
+ .global reset
+  
+  lda #(<test_string)
+  sta ADDR_ARG_1
+  
+  lda #(>test_string)
+  sta ADDR_ARG_1 + 1
+  jsr write_zero_terminated_string_line_1
+
+  lda #42
+  sta PRINT_BASE_10_VALUE
+  lda #$00
+  sta PRINT_BASE_10_VALUE + 1
+  jsr write_base_10_number_line_2
+
   rts
 
 loop:
@@ -38,11 +53,6 @@ loop:
 ;
 on_up_button_press:
   .global on_up_button_press
-  lda SCREEN_CURSOR_ROW
-  beq on_up_button_press__exit
-  lda #0
-  sta SCREEN_CURSOR_ROW
-on_up_button_press__exit:
   rts
 
 ;
@@ -50,13 +60,6 @@ on_up_button_press__exit:
 ;
 on_right_button_press:
   .global on_right_button_press
-  lda SCREEN_CURSOR_POS
-  clc
-  cmp #15
-  beq on_right_button_press__exit
-  inc SCREEN_CURSOR_POS
-on_right_button_press__exit:
-  .global on_right_button_press__exit
   rts
 
 ;
@@ -64,11 +67,6 @@ on_right_button_press__exit:
 ;
 on_down_button_press:
   .global on_down_button_press
-  lda SCREEN_CURSOR_ROW
-  bne on_down_button_press__exit 
-  lda #1
-  sta SCREEN_CURSOR_ROW
-on_down_button_press__exit:
   rts
 
 ;
@@ -76,10 +74,6 @@ on_down_button_press__exit:
 ;
 on_left_button_press:
   .global on_left_button_press
-  lda SCREEN_CURSOR_POS
-  beq on_left_button_press__exit
-  dec SCREEN_CURSOR_POS
-on_left_button_press__exit:
   rts
 
 ;
@@ -87,23 +81,6 @@ on_left_button_press__exit:
 ;
 on_action_button_press:
   .global on_action_button_press
-  LDA SCREEN_CURSOR_ROW
-  beq on_action_button_press___modify_first_row
-
-on_action_button_press___modify_second_row:
-  lda SCREEN_CURSOR_POS
-  tay
-  lda #'1'
-  sta SCREEN_OUT_2,Y
-  jmp on_action_button_press__exit
-
-on_action_button_press___modify_first_row:
-  lda SCREEN_CURSOR_POS
-  tay
-  lda #'1'
-  sta SCREEN_OUT_1,Y
-
-on_action_button_press__exit:
   rts
 
 

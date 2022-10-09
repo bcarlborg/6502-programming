@@ -10,6 +10,9 @@
 ADDR_ARG_1: .byte $FF,$FF; 2 bytes
   .global ADDR_ARG_1
 
+ADDR_ARG_2: .byte $FF,$FF; 2 bytes
+  .global ADDR_ARG_2
+
   .section ".variables"
 ; general purpose temporary variable!
 ; don't expect it to be preserved accross

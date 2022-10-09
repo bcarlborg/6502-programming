@@ -2,15 +2,6 @@
 
   .section ".variables"
 
-; helper numbers for base 10 division
-PRINT_BASE_10_VALUE: .byte $FF,$FF ; 2 bytes
-  .global PRINT_BASE_10_VALUE
-
-PRINT_BASE_10_MOD_10: .byte $FF,$FF ; 2 bytes
-
-; helper variable to store the number to write to screen
-PRINT_NUMBER_OUT: .byte $FF,$FF,$FF,$FF,$FF,$FF ; 6 bytes
-
 SCREEN_CURSOR_POS: .byte $FF; 1 byte
   .global SCREEN_CURSOR_POS
 
@@ -26,7 +17,12 @@ SCREEN_OUT_2: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
   .section '.routines'
 
 ; ------------------------------
-; printing sub routines
+; CLEAR AND WRITE SCREEN STATE FUNCTIONS
+;
+; These functions write the SCREEN_OUT_1 and SCREEN_OUT_2 data
+; to the lcd screen on lines 1 and 2 respectively, and also
+; set the cursor position and row according to the variables
+; SCREEN_CURSOR_ROW and SCREEN_CURSOR_POS
 ; ------------------------------
 
 lcd_display_clear_and_write_out:
@@ -91,20 +87,12 @@ lcd_display_clear_and_write_out__set_cursor__set_pos__exit:
   rts
 
 
-; pass address of string in ADDR_ARG_1
-lcd_display_write_zero_terminated_string:
-  .global lcd_display_write_zero_terminated_string
-  ldy #0
-
-lcd_display_write_zero_terminated_string__inner:
-  lda (ADDR_ARG_1),Y
-  beq lcd_display_write_zero_terminated_string__exit
-  jsr lcd_display_write_character
-  iny
-  jmp lcd_display_write_zero_terminated_string__inner
-
-lcd_display_write_zero_terminated_string__exit:
-  rts
+; ------------------------------
+; CHARACTER WRITING
+;
+; write the character passed in the A register to the lcd screen
+; at the current cursor position
+; ------------------------------
   
 ; pass character data to write in register a
 lcd_display_write_character:
@@ -138,86 +126,6 @@ lcd_display_write_character:
 
   pla
   rts
-
-; writes a 16 bit number passed in PRINT_BASE_10_VALUE, PRINT_BASE_10_VALUE + 1
-lcd_display_write_base_10_number:
-  .global lcd_display_write_base_10_number
-  lda #0
-  sta PRINT_NUMBER_OUT
-
-lcd_display_write_base_10_number__divide:
-  ; initialize remainder to 0
-  lda #0
-  sta PRINT_BASE_10_MOD_10
-  sta PRINT_BASE_10_MOD_10 + 1
-
-  ldx #16
-  clc
-lcd_display_write_base_10_number__divloop:
-  ; rotate quotient and remainder
-  rol PRINT_BASE_10_VALUE
-  rol PRINT_BASE_10_VALUE + 1
-  rol PRINT_BASE_10_MOD_10
-  rol PRINT_BASE_10_MOD_10 + 1
-
-  ; a,y = dividend - divisor
-  sec
-  lda PRINT_BASE_10_MOD_10
-  sbc #10
-  tay ; save the low byte in y
-  lda PRINT_BASE_10_MOD_10 + 1
-  sbc #0
-  bcc lcd_display_write_base_10_number__ignore_result ; branch if dividend < divisor
-  sty PRINT_BASE_10_MOD_10
-  sta PRINT_BASE_10_MOD_10 + 1
-
-lcd_display_write_base_10_number__ignore_result:
-  dex
-  bne lcd_display_write_base_10_number__divloop
-  rol PRINT_BASE_10_VALUE
-  rol PRINT_BASE_10_VALUE + 1
-
-  lda PRINT_BASE_10_MOD_10
-  clc
-  adc #"0"
-  jsr print_base_10_push_char
-
-  ; if value != 0, then continue dividing
-  lda PRINT_BASE_10_VALUE
-  ora PRINT_BASE_10_VALUE + 1
-  bne lcd_display_write_base_10_number__divide ; brnach if value not zero
-
-  ; write the final result out to lcd display
-  lda #(<PRINT_NUMBER_OUT)
-  sta ADDR_ARG_1
-  
-  lda #(>PRINT_NUMBER_OUT)
-  sta ADDR_ARG_1 + 1
-  
-  jsr lcd_display_write_zero_terminated_string
-
-; have character in the a register
-; add that character to the beginning of null terminated string in
-; PRINT_NUMBER_OUT location
-print_base_10_push_char:
-  pha
-  ldy #0
-
-print_base_10_push_char__loop:
-  lda PRINT_NUMBER_OUT,y  ; get char on string and put into x
-  tax
-  pla
-  sta PRINT_NUMBER_OUT,y ; pull char off stack and add it to the string
-  iny
-  txa
-  pha                    ; psuh char from string onto stack
-  bne print_base_10_push_char__loop
-
-  pla
-  sta PRINT_NUMBER_OUT,y ; pull null off the stack and add that to the string
-  rts
-
-
 
 
 ; ------------------------------
