@@ -1,7 +1,6 @@
   .include 'global_constants.h.s'
 
   .section ".variables"
-
 ; helper numbers for base 10 division
 PRINT_BASE_10_VALUE: .byte $FF,$FF ; 2 bytes
   .global PRINT_BASE_10_VALUE
@@ -201,5 +200,62 @@ print_blanks_for_length__inner:
 pint_blanks_for_length__exit:
   rts
 
+; checks if the string pointed to by ADDR_ARG_1
+; is equal to ADDR_ARG_2 for length in X
+; if equal, A will be 1 at exit
+; if not equal, A will be 0
+are_strings_equal:
+  .global are_strings_equal
+  ldy #0
 
+are_strings_equal__inner:
+  ; check if y equals length passed in a
+  ; if they are equal, we can exit
+  clc
+  txa
+  sta TMP
+  cpy TMP
+  beq are_strings_equal__exit__equal
+  
+  ; check if the two chars are equal
+  clc
+  lda (ADDR_ARG_1),Y
+  cmp (ADDR_ARG_2),Y
+  ; if not euqal, exit
+  bne are_strings_equal__exit__not_equal
 
+  ; do another loop
+  iny
+  jmp are_strings_equal__inner
+
+are_strings_equal__exit__equal:
+  lda #1
+  rts
+
+are_strings_equal__exit__not_equal:
+  lda #0
+  rts
+
+; copy's string in ADDR_ARG_1 to ADDR_ARG_2
+; for legnth passed in x
+copy_string_by_len:
+  .global copy_string_by_len
+  ldy #0
+
+copy_string_by_len__inner:
+  ; if y == len, then exit
+  clc
+  txa
+  sta TMP
+  cpy TMP
+  beq copy_string_by_len__exit
+
+  ; copy the characters
+  lda (ADDR_ARG_1),y
+  sta (ADDR_ARG_2),y
+
+  iny 
+  jmp copy_string_by_len__inner
+
+copy_string_by_len__exit:
+  rts

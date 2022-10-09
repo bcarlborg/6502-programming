@@ -14,6 +14,19 @@ SCREEN_OUT_1: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
 SCREEN_OUT_2: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
   .global SCREEN_OUT_2
 
+INTERNAL_SCREEN_OUT_1: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
+
+INTERNAL_SCREEN_OUT_2: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
+
+
+INTERNAL_SCREEN_CURSOR_POS: .byte $FF ; 1 byte
+
+INTERNAL_SCREEN_CURSOR_ROW: .byte $FF ; 1 byte
+
+
+
+
+
   .section '.routines'
 
 ; ------------------------------
@@ -27,7 +40,17 @@ SCREEN_OUT_2: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
 
 lcd_display_clear_and_write_out:
   .global lcd_display_clear_and_write_out
+
+  ; if should print lines is not true
+  ; then don't print the lines
+  jsr should_print_lines  
+  clc
+  cmp #1
+  bne lcd_display_clear_and_write_out__exit__any_maybe_update_cursor
+  
   jsr lcd_display_clear_display
+  lda #0
+  jsr lcd_display_set_ddram
   jsr lcd_display_return_home
   ldy #0
 
@@ -57,33 +80,164 @@ lcd_display_clear_and_write_out__print_line_2_inner:
   jmp lcd_display_clear_and_write_out__print_line_2_inner
  
 lcd_display_clear_and_write_out__print_line_2_exit:
+
+  ; because we just wrote a bunch of characters,
+  ; we have to set the cursor back in its correct place
+  jsr set_row_and_cursor
+  rts
+
+lcd_display_clear_and_write_out__exit__any_maybe_update_cursor:
+  jsr should_update_cursor
+  clc
+  cmp #0
+  beq lcd_display_clear_and_write_out__exit
+  jsr set_row_and_cursor
+  rts
+
+lcd_display_clear_and_write_out__exit:
+  rts
+
+
+; checks screen line 1 and 2 agaist their
+; internal counter parts, if they are the same,
+; then print no, if they are different, update the
+; internal counter parts and return yes
+should_print_lines:
+  lda #(<SCREEN_OUT_1)
+  sta ADDR_ARG_1
+  lda #(>SCREEN_OUT_1)
+  sta ADDR_ARG_1 + 1
+
+  lda #(<INTERNAL_SCREEN_OUT_1)
+  sta ADDR_ARG_2
+  lda #(>INTERNAL_SCREEN_OUT_1)
+  sta ADDR_ARG_2 + 1
+
+  lda #16
+  tax
+  jsr are_strings_equal
+
+  ; check if line 1 was equal, if not, then we need to print
+  clc
+  cmp #1
+  bne should_print_lines__yes
+
+  lda #(<SCREEN_OUT_2)
+  sta ADDR_ARG_1
+  lda #(>SCREEN_OUT_2)
+  sta ADDR_ARG_1 + 1
+
+  lda #(<INTERNAL_SCREEN_OUT_2)
+  sta ADDR_ARG_2
+  lda #(>INTERNAL_SCREEN_OUT_2)
+  sta ADDR_ARG_2 + 1
+
+  lda #16
+  tax
+  jsr are_strings_equal
+
+  ; check if line 2 was not equal then lets exit
+  ; else, fall through to yes
+  clc
+  cmp #1
+  beq should_print_lines__no
+
+should_print_lines__yes:
+  lda #(<SCREEN_OUT_1)
+  sta ADDR_ARG_1
+  lda #(>SCREEN_OUT_1)
+  sta ADDR_ARG_1 + 1
+
+  lda #(<INTERNAL_SCREEN_OUT_1)
+  sta ADDR_ARG_2
+  lda #(>INTERNAL_SCREEN_OUT_1)
+  sta ADDR_ARG_2 + 1
+
+  ldy #16
+  jsr copy_string_by_len
+
+  lda #(<SCREEN_OUT_2)
+  sta ADDR_ARG_1
+  lda #(>SCREEN_OUT_2)
+  sta ADDR_ARG_1 + 1
+
+  lda #(<INTERNAL_SCREEN_OUT_2)
+  sta ADDR_ARG_2
+  lda #(>INTERNAL_SCREEN_OUT_2)
+  sta ADDR_ARG_2 + 1
+
+  ldy #16
+  jsr copy_string_by_len
+
+  lda #1
+  rts
+
+should_print_lines__no:
+  lda #0
+  rts
+
+
+; should we update the screens row and pos
+; for teh cursor
+should_update_cursor:
+  clc
+  lda SCREEN_CURSOR_POS
+  cmp INTERNAL_SCREEN_CURSOR_POS
+  bne should_update_cursor__yes
+
+  clc
   lda SCREEN_CURSOR_ROW
-  beq lcd_display_clear_and_write_out__set_cursor__row_1
+  cmp INTERNAL_SCREEN_CURSOR_ROW
+  beq should_update_cursor__no
+
+should_update_cursor__yes:
+  lda SCREEN_CURSOR_POS
+  sta INTERNAL_SCREEN_CURSOR_POS
+  lda SCREEN_CURSOR_ROW
+  sta INTERNAL_SCREEN_CURSOR_ROW
+
+  lda #1
+  rts
+
+should_update_cursor__no:
+  lda #0
+  rts
+
+
+; ------------------------------
+; set_row_and_cursor
+;
+; this function sets the cursor and row of the cursor
+; according to the values in SCREEN_CURSOR_POS & SCREEN_CURSOR_ROW
+; ------------------------------
+set_row_and_cursor:
+  lda SCREEN_CURSOR_ROW
+  beq set_row_and_cursor__set_cursor__row_1
 
   ; set cursor to row 2
   lda #40
-  jmp lcd_display_clear_and_write_out__set_cursor__set_pos
+  jmp set_row_and_cursor__set_cursor__set_pos
 
   ; set cursor to row 1
-lcd_display_clear_and_write_out__set_cursor__row_1:
+set_row_and_cursor__set_cursor__row_1:
   lda #0
 
-lcd_display_clear_and_write_out__set_cursor__set_pos:
+set_row_and_cursor__set_cursor__set_pos:
   jsr lcd_display_set_ddram
 
   lda SCREEN_CURSOR_POS
   tax
-lcd_display_clear_and_write_out__set_cursor__set_pos__inner:
+set_row_and_cursor__set_cursor__set_pos__inner:
   txa
-  beq lcd_display_clear_and_write_out__set_cursor__set_pos__exit
+  beq set_row_and_cursor__set_cursor__set_pos__exit
   
   dex
   txa
   jsr lcd_display_shift_cursor_right
   tax
-  jmp lcd_display_clear_and_write_out__set_cursor__set_pos__inner
+  jmp set_row_and_cursor__set_cursor__set_pos__inner
 
-lcd_display_clear_and_write_out__set_cursor__set_pos__exit:
+set_row_and_cursor__set_cursor__set_pos__exit:
   rts
 
 

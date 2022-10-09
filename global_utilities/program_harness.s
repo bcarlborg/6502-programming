@@ -109,9 +109,7 @@ loop_harness:
   jsr process_button_4_press
   jsr process_button_5_press
   
-  ; jsr print_data_to_lcd_screen
-  
-  jsr clear_screen_and_print_irq_counter
+  jsr maybe_clear_screen_and_print
 
   jsr loop
   jmp loop_harness
@@ -124,16 +122,16 @@ loop_harness:
 ; ------------------------------
 
 
-clear_screen_and_print_irq_counter:
+maybe_clear_screen_and_print:
   sec
   lda TICKS
   sbc FRAME_TIME
 
-  ; check if 250 ms have passed
-  cmp #25
+  ; check if 50 ms have passed
+  cmp #5
 
   ; if not exit
-  bcc clear_screen_and_print_irq_counter__exit
+  bcc maybe_clear_screen_and_print__exit
 
   ; if so, then update frame time and continue
   lda TICKS
@@ -144,7 +142,7 @@ clear_screen_and_print_irq_counter:
   rts 
 
 
-clear_screen_and_print_irq_counter__exit:
+maybe_clear_screen_and_print__exit:
   rts
 
 ; ------------------------------
