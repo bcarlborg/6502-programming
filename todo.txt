@@ -8,14 +8,9 @@ PROJECT TODOS:
 - Code structure
   - make a macro for loading and storing adrresses
 
-notes for the harness
-- loop and reset in the harness can be their own symbols loop_harness reset_harness,
-  - they can be registered by the vectors array, then other modules that want to use
-  - them can just write their own loop and reset functions that are called by the harness
-    - I'll have to figure out a way to only call those functions if a symbols is defined
-      for them, but that can be later... For now, some functions can just be required
-      like onButtonPress, reset, and loop
+- Base print test project
+  - have buttons itterate through list of messages
+  - will need to figure out how to work with addresses that are not
+    zero paged
 
-Immediate todos
-- create a more modular way to register interrupt handlers, that way
-  I can move the timing logic out of main
+- Math library?
