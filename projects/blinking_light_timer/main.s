@@ -7,7 +7,9 @@
   .section ".zero_page_variables"
 
   .section ".variables"
-  TIMER_COUNTER_MS: .byte $FF,$FF
+  TIMER_COUNTER_10S_MS: .byte $FF,$FF
+  BLINK_TIME: .byte $FF,$FF ; two bytes
+  BLINK_STATE: .byte $FF
 
 ; ------------------------------
 ; initialized data
@@ -23,15 +25,20 @@
 ; ------------------------------
 reset:
  .global reset
- lda #$BA
- sta TIMER_COUNTER_MS
- lda #$DC
- sta TIMER_COUNTER_MS + 1
+ lda #50
+ sta TIMER_COUNTER_10S_MS
+ lda #00
+ sta TIMER_COUNTER_10S_MS + 1
 
  lda #1
  sta SCREEN_CURSOR_ROW
- lda #4
+ lda #16
  sta SCREEN_CURSOR_POS
+
+ lda 0
+ sta BLINK_TIME
+ sta BLINK_TIME + 1
+ sta BLINK_STATE
 
 rts
 
@@ -40,6 +47,7 @@ loop:
 
   jsr empty_line_1
   jsr empty_line_2
+  jsr update_blink_state
   jsr print_current_delay_ms
 
   rts
@@ -54,9 +62,15 @@ loop:
 ;
 on_up_button_press:
   .global on_up_button_press
-  ldy TIMER_COUNTER_MS 
-  iny
-  sty TIMER_COUNTER_MS
+
+  CLC           
+  LDA TIMER_COUNTER_10S_MS
+  ADC #10
+  STA TIMER_COUNTER_10S_MS
+  LDA TIMER_COUNTER_10S_MS + 1
+  ADC #0
+  STA TIMER_COUNTER_10S_MS + 1
+
   rts
 
 ;
@@ -64,9 +78,15 @@ on_up_button_press:
 ;
 on_right_button_press:
   .global on_right_button_press
-  ldy SCREEN_CURSOR_POS
-  iny
-  sty SCREEN_CURSOR_POS
+
+  CLC           
+  LDA TIMER_COUNTER_10S_MS
+  ADC #100
+  STA TIMER_COUNTER_10S_MS
+  LDA TIMER_COUNTER_10S_MS + 1
+  ADC #0
+  STA TIMER_COUNTER_10S_MS + 1
+
   rts
 
 ;
@@ -74,18 +94,22 @@ on_right_button_press:
 ;
 on_down_button_press:
   .global on_down_button_press
-  lda SCREEN_CURSOR_ROW
-  beq on_down_button_press__row_2
-  jmp on_down_button_press__row_1
+  sec           
+  lda TIMER_COUNTER_10S_MS
+  sbc #10
+  sta TIMER_COUNTER_10S_MS
+  lda TIMER_COUNTER_10S_MS +1 
+  sbc #0
+  sta TIMER_COUNTER_10S_MS +1
+  bcc on_down_button_press__underflow
+  jmp on_down_button_press__exit
 
-on_down_button_press__row_1:
-  lda #0
-  sta SCREEN_CURSOR_ROW
-  rts
+on_down_button_press__underflow:
+  lda #0 
+  sta TIMER_COUNTER_10S_MS
+  sta TIMER_COUNTER_10S_MS+1
 
-on_down_button_press__row_2:
-  lda #1
-  sta SCREEN_CURSOR_ROW
+on_down_button_press__exit:
   rts
 
 ;
@@ -93,9 +117,22 @@ on_down_button_press__row_2:
 ;
 on_left_button_press:
   .global on_left_button_press
-  ldy SCREEN_CURSOR_POS
-  dey
-  sty SCREEN_CURSOR_POS
+  sec           
+  lda TIMER_COUNTER_10S_MS
+  sbc #100
+  sta TIMER_COUNTER_10S_MS
+  lda TIMER_COUNTER_10S_MS +1 
+  sbc #00
+  sta TIMER_COUNTER_10S_MS +1
+  bcc on_left_button_press__underflow
+  jmp on_left_button_press__exit
+
+on_left_button_press__underflow:
+  lda #0 
+  sta TIMER_COUNTER_10S_MS
+  sta TIMER_COUNTER_10S_MS+1
+
+on_left_button_press__exit:
   rts
 
 ;
@@ -103,6 +140,10 @@ on_left_button_press:
 ;
 on_action_button_press:
   .global on_action_button_press
+  lda #50
+  sta TIMER_COUNTER_10S_MS
+  lda #0
+  sta TIMER_COUNTER_10S_MS + 1 
   rts
 
 
@@ -112,9 +153,9 @@ on_action_button_press:
   .section '.routines'
 
 print_current_delay_ms:
-  lda TIMER_COUNTER_MS
+  lda TIMER_COUNTER_10S_MS
   sta PRINT_BASE_10_VALUE
-  lda TIMER_COUNTER_MS + 1
+  lda TIMER_COUNTER_10S_MS + 1
   sta PRINT_BASE_10_VALUE + 1
 
   jsr write_base_10_number_line_1
@@ -136,6 +177,11 @@ print_current_delay_ms__find_space__inner:
 
 print_current_delay_ms__find_space__exit:
   ; increment y one more time
+  lda #'0'
+  sta (ADDR_ARG_1),Y
+  iny
+  lda #' '
+  sta (ADDR_ARG_1),Y
   iny
   lda #'m'
   sta (ADDR_ARG_1),Y
@@ -143,5 +189,72 @@ print_current_delay_ms__find_space__exit:
   lda #'s'
   sta (ADDR_ARG_1),Y
 
+  ldy #15
+  lda BLINK_STATE
+  beq print_current_delay_ms__blink_off
+  bne print_current_delay_ms__blink_on
+ 
+print_current_delay_ms__blink_on:
+  lda #'#'
+  sta SCREEN_OUT_2,Y
+  jmp print_current_delay_ms__blink_on_off__exit
+
+print_current_delay_ms__blink_off:
+  lda #' '
+  sta SCREEN_OUT_2,Y
+  jmp print_current_delay_ms__blink_on_off__exit
+
+print_current_delay_ms__blink_on_off__exit:
   rts
+
+
+
+update_blink_state:
+  lda TIMER_COUNTER_10S_MS  
+  ora TIMER_COUNTER_10S_MS + 1
+  beq update_blink_state__exit
+
+  sec
+  lda TICKS
+  sbc BLINK_TIME
+  sta TMP
+  lda TICKS+1
+  sbc BLINK_TIME+1
+  sta TMP+1
+
+
+  ; check if TIMER_COUNTER_10s_MS have passed
+  ; check if TMP < TIMER_COUNTER_10s_MS
+  ; if it is, then exit
+  lda TMP
+  cmp TIMER_COUNTER_10S_MS
+  lda TMP + 1
+  sbc TIMER_COUNTER_10S_MS + 1
+
+  bcc update_blink_state__exit
+
+  ; if so, then update the blink time
+  lda TICKS
+  sta BLINK_TIME
+  lda TICKS + 1
+  sta BLINK_TIME + 1
+
+  ; toggle the blink state
+  lda BLINK_STATE
+  beq update_blink_state__blink_on
+  bne update_blink_state__blink_off
+
+update_blink_state__blink_on:
+  lda #1
+  sta BLINK_STATE
+  jmp update_blink_state__exit
+
+update_blink_state__blink_off:
+  lda #0
+  sta BLINK_STATE
+  jmp update_blink_state__exit
+
+update_blink_state__exit:
+  rts 
+
 

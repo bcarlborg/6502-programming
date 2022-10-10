@@ -17,11 +17,12 @@ ADDR_ARG_2: .byte $FF,$FF; 2 bytes
 ; general purpose temporary variable!
 ; don't expect it to be preserved accross
 ; function calls
-TMP: .byte $FF,$FF ; 2 bytes
+TMP: .byte $FF,$FF,$FF ; 3 bytes
   .global TMP
 
 ; count of time driven by timer 1. Incremented every 10 ms
 TICKS: .byte $FF,$FF,$FF,$FF ; 4 bytes
+  .global TICKS
 
 ; time of the last LED blink. Is compared against ticks in
 ; our prorgam loop to decide when to toggle the led
@@ -156,7 +157,7 @@ initialize_variables:
   lda #0
   sta BLINK_LED_BLINK_TIME
 
-  lda #-1
+  lda #0
   sta CA1_DEBOUNCE_DIABLE_TICKER
 
   lda #41
@@ -274,10 +275,9 @@ via_initialize_timer1_tick_timer:
 
   ; set timer interval to:
   ; 10 ms = 10,000 micro seconds = $2710 micro seconds
-  lda #$27
-  sta VIA_T1_CL
   lda #$10
-
+  sta VIA_T1_CL
+  lda #$27
   sta VIA_T1_CH
   rts
 
@@ -441,8 +441,8 @@ irq__ca1:
   lda #%00000010
   sta VIA_IER
 
-  ; disable ca1 interrupts for 370 ms
-  lda #37
+  ; disable ca1 interrupts for 200 ms
+  lda #20
   sta CA1_DEBOUNCE_DIABLE_TICKER
 
   ; clear the interrupt
