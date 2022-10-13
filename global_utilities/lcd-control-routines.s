@@ -8,6 +8,12 @@ SCREEN_CURSOR_POS: .byte $FF; 1 byte
 SCREEN_CURSOR_ROW: .byte $FF
   .global SCREEN_CURSOR_ROW
 
+; the curosor type
+; 1 is blinking
+; 0 is not blinking
+SCREEN_CURSOR_BLINKING: .byte $FF
+  .global SCREEN_CURSOR_BLINKING
+
 SCREEN_OUT_1: .word $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF ; 16 bytes
   .global SCREEN_OUT_1
 
@@ -23,8 +29,7 @@ INTERNAL_SCREEN_CURSOR_POS: .byte $FF ; 1 byte
 
 INTERNAL_SCREEN_CURSOR_ROW: .byte $FF ; 1 byte
 
-
-
+INTERNAL_SCREEN_CURSOR_BLINKING: .byte $FF
 
 
   .section '.routines'
@@ -40,6 +45,8 @@ INTERNAL_SCREEN_CURSOR_ROW: .byte $FF ; 1 byte
 
 lcd_display_clear_and_write_out:
   .global lcd_display_clear_and_write_out
+
+  jsr maybe_update_cursor_blinking
 
   ; if should print lines is not true
   ; then don't print the lines
@@ -203,6 +210,29 @@ should_update_cursor__no:
   lda #0
   rts
 
+maybe_update_cursor_blinking:
+  lda SCREEN_CURSOR_BLINKING
+  cmp INTERNAL_SCREEN_CURSOR_BLINKING
+  beq maybe_update_cursor_blinking__exit
+
+  lda SCREEN_CURSOR_BLINKING
+  beq maybe_update_cursor_blinking__blinking_off
+  bne maybe_update_cursor_blinking__blinking_on
+
+maybe_update_cursor_blinking__blinking_on:
+  jsr lcd_display_cusor_blink_on 
+  jmp maybe_update_cursor_blinking__update_internal_state
+
+maybe_update_cursor_blinking__blinking_off:
+  jsr lcd_display_cursor_blink_off
+  jmp maybe_update_cursor_blinking__update_internal_state
+
+maybe_update_cursor_blinking__update_internal_state:
+  lda SCREEN_CURSOR_BLINKING
+  sta INTERNAL_SCREEN_CURSOR_BLINKING
+
+maybe_update_cursor_blinking__exit:
+  rts
 
 ; ------------------------------
 ; set_row_and_cursor
@@ -316,6 +346,27 @@ lcd_display_function_set:
   lda #%00111000 ; Set 8-bit mode; 2-line display; 5x8 font
   jsr lcd_display_send_instruction
   rts
+
+lcd_display_cusor_blink_on:
+  .global lcd_display_display_on
+  ; 00001DCB instruction pattern
+  ; D : display on / off | 1 / 0
+  ; C : cursor  on / off | 1 / 0
+  ; B : blink   on / off | 1 / 0
+  lda #%00001111 ; Display on; cursor on; blink off
+  jsr lcd_display_send_instruction
+  rts
+
+lcd_display_cursor_blink_off:
+  .global lcd_display_display_on
+  ; 00001DCB instruction pattern
+  ; D : display on / off | 1 / 0
+  ; C : cursor  on / off | 1 / 0
+  ; B : blink   on / off | 1 / 0
+  lda #%00001110 ; Display on; cursor on; blink off
+  jsr lcd_display_send_instruction
+  rts
+
 
 lcd_display_display_on:
   .global lcd_display_display_on

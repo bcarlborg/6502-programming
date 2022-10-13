@@ -163,6 +163,9 @@ initialize_variables:
   lda #41
   sta SCREEN_CURSOR_POS
 
+  lda #0
+  sta SCREEN_CURSOR_BLINKING
+
   lda #' '
   STA SCREEN_OUT_1
   STA SCREEN_OUT_1 + 1
@@ -441,8 +444,8 @@ irq__ca1:
   lda #%00000010
   sta VIA_IER
 
-  ; disable ca1 interrupts for 200 ms
-  lda #20
+  ; disable ca1 interrupts for 220 ms
+  lda #22
   sta CA1_DEBOUNCE_DIABLE_TICKER
 
   ; clear the interrupt
