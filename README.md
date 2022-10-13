@@ -59,5 +59,6 @@ The repository has the following structure
 
 | System on board  | Annotated system on board |
 | ------------- | ------------- |
-| <img width="728" alt="6502 on board as of 2022-10-04" src="https://user-images.githubusercontent.com/18710035/194104879-ade6bda7-72d2-4f17-b37f-e2d8d81312ca.png"> | <img width="728" alt="Annotated 6502 on board as of 2022-10-04" src="https://user-images.githubusercontent.com/18710035/194104595-60f03871-c6de-4e33-91be-af4ae55edb9f.png"> |
+| <img width="728" alt="6502 on board as of 2022-10-13" src="https://user-images.githubusercontent.com/18710035/195679940-550de15b-9784-4a2c-92d3-41a7b6d89935.png"> | <img width="728" alt="Annotated 6502 on board as of 2022-10-13" src="https://user-images.githubusercontent.com/18710035/195679791-31c1bf20-cd9c-4a23-963b-74515c1b16d2.png"> |
+
 
