@@ -46,6 +46,7 @@ reset:
 
 loop:
   .global loop
+  jsr print_status
   rts
 
   .section '.body'
@@ -110,7 +111,7 @@ on_right_button_press__exit:
 on_right_button_press_move_mode:
   lda SCREEN_CURSOR_POS
   clc
-  cmp #15
+  cmp #10
   beq on_right_button_press_move_mode__exit
   inc SCREEN_CURSOR_POS
 on_right_button_press_move_mode__exit:
@@ -228,7 +229,7 @@ on_action_button_press__exit:
 ; ------------------------------
 
 intitialize_character_sets:
-  lda #3
+  lda #1
   ldy #0
 intitialize_character_sets__line_1_loop:
   sta LINE_1_CHAR_SET,Y
@@ -238,12 +239,239 @@ intitialize_character_sets__line_1_loop:
 
   ldy #0
 intitialize_character_sets__line_2_loop:
-  lda #4
+  lda #1
   sta LINE_2_CHAR_SET,Y
   iny
   cpy #15
   bne intitialize_character_sets__line_2_loop
 
+  rts
+
+; ------------------------------
+; STATUS PRINTING_ROUTINES
+; ------------------------------
+
+print_status:
+  jsr print_status_barriers
+  jsr print_editor_status
+  rts
+
+print_editor_status:
+  lda EDITOR_MODE
+  beq print_editor_status__move_mode
+  jsr get_editor_mode_at_cursor
+  cmp #1
+  beq print_editor_status__lower_alpha
+  cmp #2
+  beq print_editor_status__upper_alpha
+  cmp #3
+  beq print_editor_status__numeric
+  cmp #4
+  beq print_editor_status__symbols
+  jmp print_editor_status__exit
+
+
+print_editor_status__move_mode:
+  jsr print_move_mode
+  jsr print_cursor_pos
+  jmp print_editor_status__exit
+print_editor_status__lower_alpha:
+  jsr print_insert_mode
+  jsr print_alpha_lower_mode
+  jmp print_editor_status__exit
+print_editor_status__upper_alpha:
+  jsr print_insert_mode
+  jsr print_alpha_upper_mode
+  jmp print_editor_status__exit
+print_editor_status__numeric:
+  jsr print_insert_mode
+  jsr print_numeric_mode
+  jmp print_editor_status__exit
+print_editor_status__symbols:
+  jsr print_insert_mode
+  jsr print_symbol_mode
+  jmp print_editor_status__exit
+
+print_editor_status__exit:
+  rts
+
+print_move_mode:
+  ldy #12
+  lda #'M'
+  sta SCREEN_OUT_1,Y
+  iny
+  lda #'O'
+  sta SCREEN_OUT_1,Y
+  iny
+  lda #'V'
+  sta SCREEN_OUT_1,Y
+  iny
+  lda #'E'
+  sta SCREEN_OUT_1,Y
+  rts
+
+print_insert_mode:
+  ldy #12
+  lda #' '
+  sta SCREEN_OUT_1,Y
+  iny
+  lda #'W'
+  sta SCREEN_OUT_1,Y
+  iny
+  lda #'R'
+  sta SCREEN_OUT_1,Y
+  iny
+  lda #'T'
+  sta SCREEN_OUT_1,Y
+  rts
+
+print_cursor_pos:
+  lda SCREEN_CURSOR_POS
+  clc
+  adc #1
+  cmp #10
+  beq print_cursor_pos__10_pos
+  cmp #11
+  beq print_cursor_pos__11_pos
+  jmp print_cursor_pos__one_digit_pos
+
+print_cursor_pos__one_digit_pos:
+  ldy #12
+  lda #' '
+  sta SCREEN_OUT_2,Y
+
+  lda SCREEN_CURSOR_ROW
+  clc
+  adc #1
+  adc #'0'
+  ldy #13
+  sta SCREEN_OUT_2,Y
+
+  lda SCREEN_CURSOR_POS
+  clc
+  adc #1
+  adc #'0'
+  ldy #15
+  sta SCREEN_OUT_2,Y
+
+  ldy #14
+  lda #':'
+  sta SCREEN_OUT_2,Y
+ 
+  jmp print_cursor_pos__exit
+
+print_cursor_pos__10_pos:
+  lda SCREEN_CURSOR_ROW
+  clc
+  adc #1
+  adc #'0'
+  ldy #12
+  sta SCREEN_OUT_2,Y
+
+  ldy #13
+  lda #':'
+  sta SCREEN_OUT_2,Y
+
+  ldy #14
+  lda #'1'
+  sta SCREEN_OUT_2,Y
+ 
+  ldy #15
+  lda #'0'
+  sta SCREEN_OUT_2,Y
+
+  jmp print_cursor_pos__exit
+
+print_cursor_pos__11_pos:
+  lda SCREEN_CURSOR_ROW
+  clc
+  adc #1
+  adc #'0'
+  ldy #12
+  sta SCREEN_OUT_2,Y
+
+  ldy #13
+  lda #':'
+  sta SCREEN_OUT_2,Y
+
+  ldy #14
+  lda #'1'
+  sta SCREEN_OUT_2,Y
+ 
+  ldy #15
+  lda #'1'
+  sta SCREEN_OUT_2,Y
+
+  jmp print_cursor_pos__exit
+
+print_cursor_pos__exit:
+  rts
+
+print_alpha_lower_mode:
+  ldy #12
+  lda #' '
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'a'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'-'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'z'
+  sta SCREEN_OUT_2,Y
+  rts
+
+print_alpha_upper_mode:
+  ldy #12
+  lda #' '
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'A'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'-'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'Z'
+  sta SCREEN_OUT_2,Y
+  rts
+
+print_numeric_mode:
+  ldy #12
+  lda #' '
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'0'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'-'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'9'
+  sta SCREEN_OUT_2,Y
+  rts
+
+print_symbol_mode:
+  ldy #12
+  lda #'s'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'y'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'m'
+  sta SCREEN_OUT_2,Y
+  iny
+  lda #'b'
+  sta SCREEN_OUT_2,Y
+  rts
+
+print_status_barriers:
+  lda #'|'
+  ldy #11
+  sta SCREEN_OUT_1,Y
+  sta SCREEN_OUT_2,Y
   rts
 
 
