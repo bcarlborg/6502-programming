@@ -55,7 +55,7 @@ The repository has the following structure
   - For example see the base_print_test project readme [here](projects/base_print_test/README.md)
 
 
-## Selected Images and Demos
+## System Hardware
 
 | System on board  | Annotated system on board |
 | ------------- | ------------- |
