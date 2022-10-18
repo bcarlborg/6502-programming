@@ -1,6 +1,6 @@
 # 6502-programming
 
-Programs written for the `65C02` 8 bit CPU running on a home built breadboard system.
+Programs written for the `65C02` 8 bit CPU running on a home built breadboard system. A video explaining the hardware and software for this system along with demos of the programs in this repository can be found [here](url) (<-- currently working on video now, here points nowhere).
 
 ## Overview
 The system these programs are designed for is similar to the one implemented in Ben Eaters Design a 6502 from scratch [youtube series](https://www.youtube.com/playlist?list=PLowKtXNTBypFbtuVMUVXNR0z1mu7dp7eH). Differences between the two systems are described in [the architecture readme](ARCHITECTURE.md).
@@ -40,7 +40,7 @@ The repository has the following structure
     │   ├── README.md        : and the objects for these projects are build into objs/
     │   ├── *.s
     │   └── main.s
-    └── ... projects
+    └── more projects...
 ```
 
 
@@ -51,8 +51,10 @@ The repository has the following structure
   - Describes the toolchain used to assemble and link binaries along with where those tools can be found and built.
   - Provides an overview of some in code constructs that are used frequently throughout the project.
   - Describes basic style and conventions used in the programs.
-- Project specific info : This repository contains many sub projects that can be built and uploaded to the 6502 system build here. Each of those projects has a README.md in its respective `projects/` directory. That readme will contain info about the specific project along with demos of the project.
-  - For example see the base_print_test project readme [here](projects/base_print_test/README.md)
+- Project specific info : This repository contains many sub projects that can be built and uploaded to the 6502 system build. Each has their own readme
+  - Base Print Test project [readme](projects/base_print_test/README.md)
+  - Blinking Light Timer project [readme](projects/blinking_light_timer/README.md)
+  - Simple Text Editor project [readme](projects/simple_text_editor/README.md)
 
 
 ## System Hardware
