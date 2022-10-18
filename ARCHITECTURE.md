@@ -1,7 +1,7 @@
 # Architecture and System overview
 This system is based off of the Design a 6502 from scratch [youtube series](https://www.youtube.com/playlist?list=PLowKtXNTBypFbtuVMUVXNR0z1mu7dp7eH) created by ben eater. 
 
-## System Features
+## System Hardware Features
 - The system is entirely implemented on bread boards
 - The system features two clocks that can be toggled using a jumper wire
   - A 1 MHz crystal oscilator clock for production use
@@ -19,6 +19,56 @@ The system I have implemented closely aligns with the schematic provided by Ben 
   src="https://user-images.githubusercontent.com/18710035/194106846-9253489c-890c-476f-b3d5-a14f14d86146.png"
   alt="6502 project schematic from Ben Eater"
   style="margin: 0 auto; max-width: 300px">
+
+## Memory Map
+```
+=======================================
+Address space
+=======================================
+------
+$0000 |
+$1000 | -- V65C22 VIA
+$2000 |
+$3000 |
+------
+$4000
+$5000
+------
+$6000 | -- V65C22 VIA
+------
+$7000
+$8000
+$9000
+$A000
+$B000
+$C000
+$D000
+------
+$E000 | -- 28C64B EEPROM
+$FFFF |
+------
+
+=======================================
+65C22 VIA to HD44780U LCD Display
+=======================================
+
+VIA_PORT_B[0..7] --> LCD controlelr D[0..7]
+VIA_PORT_A[7]    --> LCD controller enable bit
+VIA_PORT_A[6]    --> LCD controller R/W bit
+VIA_PORT_A[5]    --> LCD controller RS bit
+
+=======================================
+65C22 VIA to blinking LED
+=======================================
+
+VIA_PORT_A[0]    --> LED
+
+=======================================
+65C22 VIA to button
+=======================================
+
+VIA_PORT_A[CA1]   --> negative transition push button
+```
 
 ## Images
 | System on board  | Annotated system on board |
