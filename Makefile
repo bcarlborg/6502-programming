@@ -90,6 +90,35 @@ $(GLOBAL_UTILITIES_OBJECT_PREFIX)strings.obj: \
 	$(AS) $(AS_FLAGS) $(AS_OUT)$@ $(GLOBAL_UTILITIES_DIRECTORY)strings.s
 
 # ###############################################
+# HELP
+# ###############################################
+
+help:
+	@echo ""
+	@echo ""
+	@echo "MAKE"
+	@echo "- build the default target  :  make"
+	@echo "  (base print test)"
+	@echo "- remove all object files   :  make clean"
+	@echo ""
+	@echo "BASE PRINT TEST PROJECT"
+	@echo "- make project objects      :  make base_print_test"
+	@echo "- upload objects to EEPROM  :  make upload_base_print_test"
+	@echo "- remove project objects    :  make clean_base_print_test"
+	@echo ""
+	@echo "BLINKING LIGHT TIMER PROJECT"
+	@echo "- make project objects      :  make blinking_light_timer"
+	@echo "- upload objects to EEPROM  :  make upload_blinking_light_timer"
+	@echo "- remove project objects    :  make clean_blinking_light_timer"
+	@echo ""
+	@echo "SIMPLE TEXT EDITOR PROJECT"
+	@echo "- make project objects      :  make simple_text_editor"
+	@echo "- upload objects to EEPROM  :  make upload_simple_text_editor"
+	@echo "- remove project objects    :  make clean_simple_text_editor"
+	@echo ""
+	@echo ""
+
+# ###############################################
 # BASE_PRINT_TEST PROJECT
 # ###############################################
 
@@ -105,7 +134,7 @@ upload_base_print_test: $(BASE_PRINT_TEST_OBJECT_PREFIX)executable.out
 	$(UPLOAD) $(UPLOAD_FLAGS) $(UPLOAD_OUT)$(BASE_PRINT_TEST_OBJECT_PREFIX)executable.out
 
 # target to clean all of teh base print test objects and executables
-base_print_test_clean:
+clean_base_print_test:
 	$(RM) $(BASE_PRINT_TEST_OBJECT_PREFIX)*
 
 # target for main executable
@@ -139,7 +168,7 @@ upload_blinking_light_timer: $(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)executable.out
 	$(UPLOAD) $(UPLOAD_FLAGS) $(UPLOAD_OUT)$(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)executable.out
 
 # target to clean all of teh base print test objects and executables
-blinking_light_timer_clean:
+clean_blinking_light_timer:
 	$(RM) $(BLINKING_LIGHT_TIMER_OBJECT_PREFIX)*
 
 # target for main executable
@@ -173,7 +202,7 @@ upload_simple_text_editor: $(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)executable.out
 	$(UPLOAD) $(UPLOAD_FLAGS) $(UPLOAD_OUT)$(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)executable.out
 
 # target to clean all of teh base print test objects and executables
-simple_text_editor_clean:
+clean_simple_text_editor:
 	$(RM) $(SIMPLE_TEXT_EDITOR_OBJECT_PREFIX)*
 
 # target for main executable
