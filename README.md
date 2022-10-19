@@ -46,11 +46,15 @@ The repository has the following structure
     │   ├── README.md        : their own. Each project contains its own readme that contains
     │   ├── *.s              : info about that specific project along with demos.
     │   └── main.s           :
+    │                        :
     ├── project_2/           : Most projects rely in some way on a helper in global_utilities,
     │   ├── README.md        : and the objects for these projects are build into objs/
     │   ├── *.s
     │   └── main.s
-    └── more projects...
+    │
+    └── project_n/
+        ├── *.s
+        └── main.s
 ```
 
 ## System Hardware
