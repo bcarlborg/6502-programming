@@ -6,7 +6,7 @@ Programs written for the `65C02` 8 bit CPU running on a home built breadboard sy
 A video explaining the hardware and software for this system along with demos of the programs in this repository can be found on youtube [here](https://youtu.be/JMgLx2TyrVw).
 
 <p align="center">
-  <a href="https://www.w3schools.com">
+  <a href="https://youtu.be/JMgLx2TyrVw">
     <img alt="6502 programming demo thumbnail" width="70%" src="https://user-images.githubusercontent.com/18710035/196743711-850ec1b8-618a-4a03-ade2-dd102c83d693.png" />
   </a>
 </p>
