@@ -1,6 +1,6 @@
 # 6502-programming
 
-Programs written for the `65C02` 8 bit CPU running on a home built breadboard system. 
+Programs written for the `6502` 8 bit CPU running on a home built breadboard system. 
 
 ## Demo
 A video explaining the hardware and software for this system along with demos of the programs in this repository can be found on youtube [here](https://youtu.be/JMgLx2TyrVw).
